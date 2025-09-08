@@ -1,0 +1,7 @@
+{
+  "database-url-var": "DATABASE_URL",
+  "dir": "./src/db/migrations",
+  "migration-file-language": "js",
+  "create-schema": true,
+  "check-order": true
+}
