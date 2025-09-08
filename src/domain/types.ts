@@ -16,6 +16,8 @@ export interface Movie {
   poster: string | null;
   source: 'omdb' | 'custom';
   createdByUserId: string | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -176,6 +178,8 @@ export interface MovieRow {
   poster: string | null;
   source: 'omdb' | 'custom';
   created_by_user_id: string | null;
+  is_deleted: boolean;
+  deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -190,6 +194,7 @@ export interface UserMovieRow {
   overridden_runtime_minutes: number | null;
   overridden_genre: string[] | null;
   overridden_director: string[] | null;
+  effective_normalized_title: string;
   created_at: Date;
   updated_at: Date;
 }

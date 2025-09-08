@@ -65,11 +65,11 @@ export class MoviesService {
     const validated = createMovieSchema.parse(data);
     const normalizedTitle = normalizeTitle(validated.title);
 
-    // Check for duplicate title
-    const existingMovie =
-      await moviesRepo.findByNormalizedTitle(normalizedTitle);
-    if (existingMovie) {
-      throw new Error('A movie with the same name already exists.');
+    // Check for duplicate title in user's collection
+    const existingUserMovie = 
+      await userMoviesRepo.findByUserAndEffectiveTitle(userId, normalizedTitle);
+    if (existingUserMovie) {
+      throw new Error('A movie with the same name already exists in your collection.');
     }
 
     // Create movie
@@ -86,6 +86,7 @@ export class MoviesService {
     });
 
     // Create user-movie relationship
+    // The effective_normalized_title will be automatically calculated by trigger
     await userMoviesRepo.create({
       userId,
       movieId: movie.id,
@@ -115,12 +116,13 @@ export class MoviesService {
       if (validated.title) {
         updateData.normalizedTitle = normalizeTitle(validated.title);
 
-        // Check for duplicate title (exclude current movie)
-        const existingMovie = await moviesRepo.findByNormalizedTitle(
+        // Check for duplicate title in user's collection (exclude current movie)
+        const existingUserMovie = await userMoviesRepo.findByUserAndEffectiveTitle(
+          userId, 
           updateData.normalizedTitle
         );
-        if (existingMovie && existingMovie.id !== movieId) {
-          throw new Error('A movie with the same name already exists.');
+        if (existingUserMovie && existingUserMovie.movieId !== movieId) {
+          throw new Error('A movie with the same name already exists in your collection.');
         }
       }
 
@@ -128,6 +130,18 @@ export class MoviesService {
       if (!updatedMovie) return null;
 
       return { movie: updatedMovie, isOverride: false };
+    }
+
+    // For OMDB movies, check uniqueness of overridden title if provided
+    if (validated.title) {
+      const normalizedOverrideTitle = normalizeTitle(validated.title);
+      const existingUserMovie = await userMoviesRepo.findByUserAndEffectiveTitle(
+        userId, 
+        normalizedOverrideTitle
+      );
+      if (existingUserMovie && existingUserMovie.movieId !== movieId) {
+        throw new Error('A movie with the same name already exists in your collection.');
+      }
     }
 
     // Otherwise, save as user overrides
@@ -175,6 +189,16 @@ export class MoviesService {
       // Create relationship if it doesn't exist
       const movie = await moviesRepo.findById(movieId);
       if (!movie) return false;
+
+      // Check if user already has movie with same title
+      const normalizedTitle = normalizeTitle(movie.title);
+      const existingUserMovie = await userMoviesRepo.findByUserAndEffectiveTitle(
+        userId, 
+        normalizedTitle
+      );
+      if (existingUserMovie) {
+        throw new Error('A movie with the same name already exists in your collection.');
+      }
 
       await userMoviesRepo.create({
         userId,

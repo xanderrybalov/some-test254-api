@@ -7,7 +7,7 @@ export class MoviesRepository {
    */
   async findById(id: string): Promise<Movie | null> {
     const result = await db.query<MovieRow>(
-      'SELECT * FROM movies WHERE id = $1',
+      'SELECT * FROM movies WHERE id = $1 AND is_deleted = false',
       [id]
     );
 
@@ -21,7 +21,7 @@ export class MoviesRepository {
    */
   async findByOmdbId(omdbId: string): Promise<Movie | null> {
     const result = await db.query<MovieRow>(
-      'SELECT * FROM movies WHERE omdb_id = $1',
+      'SELECT * FROM movies WHERE omdb_id = $1 AND is_deleted = false',
       [omdbId]
     );
 
@@ -35,7 +35,7 @@ export class MoviesRepository {
    */
   async findByNormalizedTitle(normalizedTitle: string): Promise<Movie | null> {
     const result = await db.query<MovieRow>(
-      'SELECT * FROM movies WHERE lower(normalized_title) = lower($1)',
+      'SELECT * FROM movies WHERE lower(normalized_title) = lower($1) AND is_deleted = false',
       [normalizedTitle]
     );
 
@@ -51,7 +51,7 @@ export class MoviesRepository {
     if (ids.length === 0) return [];
 
     const result = await db.query<MovieRow>(
-      'SELECT * FROM movies WHERE id = ANY($1)',
+      'SELECT * FROM movies WHERE id = ANY($1) AND is_deleted = false',
       [ids]
     );
 
@@ -186,11 +186,13 @@ export class MoviesRepository {
   }
 
   /**
-   * Delete movie (only custom movies owned by user)
+   * Soft delete movie (only custom movies owned by user)
    */
   async delete(movieId: string, userId: string): Promise<boolean> {
     const result = await db.query(
-      'DELETE FROM movies WHERE id = $1 AND source = $2 AND created_by_user_id = $3',
+      `UPDATE movies 
+       SET is_deleted = true, deleted_at = now() 
+       WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`,
       [movieId, 'custom', userId]
     );
 
@@ -253,6 +255,8 @@ export class MoviesRepository {
       poster: row.poster,
       source: row.source,
       createdByUserId: row.created_by_user_id,
+      isDeleted: row.is_deleted,
+      deletedAt: row.deleted_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

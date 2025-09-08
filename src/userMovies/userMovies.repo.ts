@@ -63,7 +63,7 @@ export class UserMoviesRepository {
         um.overridden_director,
         m.source
       FROM user_movies um
-      JOIN movies m ON um.movie_id = m.id
+      JOIN movies m ON um.movie_id = m.id AND m.is_deleted = false
       ${whereClause}
       ORDER BY um.updated_at DESC
     `,
@@ -251,6 +251,23 @@ export class UserMoviesRepository {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  }
+
+  /**
+   * Check if user already has movie with the same effective normalized title
+   */
+  async findByUserAndEffectiveTitle(
+    userId: string,
+    effectiveNormalizedTitle: string
+  ): Promise<UserMovie | null> {
+    const result = await db.query<UserMovieRow>(
+      'SELECT * FROM user_movies WHERE user_id = $1 AND LOWER(effective_normalized_title) = LOWER($2)',
+      [userId, effectiveNormalizedTitle]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 }
 

@@ -127,6 +127,8 @@ export class OMDBService {
         poster: row.poster,
         source: row.source,
         createdByUserId: row.created_by_user_id,
+        isDeleted: row.is_deleted,
+        deletedAt: row.deleted_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
@@ -201,6 +203,8 @@ export class OMDBService {
       poster: omdbMovie.Poster && omdbMovie.Poster !== 'N/A' ? omdbMovie.Poster : null,
       source: 'omdb' as const,
       createdByUserId: null,
+      isDeleted: false,
+      deletedAt: null,
     };
   }
 

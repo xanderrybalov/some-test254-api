@@ -64,7 +64,7 @@ export class UserMoviesController {
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === 'A movie with the same name already exists.') {
+        if (error.message.includes('A movie with the same name already exists')) {
           res.status(409).json({ error: error.message });
           return;
         }
@@ -114,7 +114,7 @@ export class UserMoviesController {
       res.json(updatedMovie);
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === 'A movie with the same name already exists.') {
+        if (error.message.includes('A movie with the same name already exists')) {
           res.status(409).json({ error: error.message });
           return;
         }
