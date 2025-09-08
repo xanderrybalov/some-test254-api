@@ -122,6 +122,7 @@ export class UserMoviesRepository {
       runtimeMinutes?: number | null;
       genre?: string[] | null;
       director?: string[] | null;
+      // poster is immutable - cannot be overridden
     }
   ): Promise<UserMovie | null> {
     const setParts: string[] = [];

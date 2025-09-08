@@ -85,7 +85,7 @@ npm start
 
 * `GET /api/users/:userId/movies` — Get user’s movie collection
 * `POST /api/users/:userId/movies` — Create a custom movie
-* `PUT /api/users/:userId/movies/:movieId` — Edit a movie
+* `PUT /api/users/:userId/movies/:movieId` — Edit a movie (poster is immutable)
 * `PUT /api/users/:userId/movies/:movieId/favorite` — Mark as favorite
 * `DELETE /api/users/:userId/movies/:movieId` — Delete a movie
 
@@ -170,6 +170,8 @@ npm run test:coverage
      "director": ["Updated Director", "Co-Director"]
    }
    ```
+
+   **Note:** `poster` field cannot be updated - it's set only during creation.
 
 7. **Mark as favorite**
    **PUT** `{{baseUrl}}/users/{userId}/movies/{movieId}/favorite`

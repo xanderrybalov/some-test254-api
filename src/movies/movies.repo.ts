@@ -112,7 +112,7 @@ export class MoviesRepository {
       runtimeMinutes?: number | null;
       genre?: string[] | null;
       director?: string[] | null;
-      poster?: string | null;
+      // poster is immutable - cannot be updated
     }
   ): Promise<Movie | null> {
     const setParts: string[] = [];
@@ -155,11 +155,7 @@ export class MoviesRepository {
       paramIndex++;
     }
 
-    if (movieData.poster !== undefined) {
-      setParts.push(`poster = $${paramIndex}`);
-      values.push(movieData.poster);
-      paramIndex++;
-    }
+    // poster is immutable - skip updating
 
     if (setParts.length === 0) {
       // No fields to update, return current movie

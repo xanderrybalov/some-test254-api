@@ -148,7 +148,7 @@ export interface UpdateMovieRequest {
   runtimeMinutes?: number;
   genre?: string[];
   director?: string[];
-  poster?: string;
+  // poster is immutable - can only be set during creation
 }
 
 export interface SetFavoriteRequest {

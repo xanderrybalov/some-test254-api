@@ -26,7 +26,7 @@ const updateMovieSchema = z.object({
   runtimeMinutes: z.number().int().min(1).optional(),
   genre: z.array(z.string().min(3)).min(1).optional(),
   director: z.array(z.string().min(3)).min(1).optional(),
-  poster: z.string().url().optional(),
+  // poster is immutable - can only be set during creation
 });
 
 export class MoviesService {
