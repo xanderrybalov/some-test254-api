@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
+export type ValidatedRequest<
+  Body = unknown,
+  Query = unknown, 
+  Params = unknown
+> = Request<Params, unknown, Body, Query>;
+
+export type InferZodType<T> = T extends z.ZodSchema<infer U> ? U : never;
 
 /**
  * Middleware to validate request body against Zod schema
@@ -7,7 +14,7 @@ import { z, ZodError } from 'zod';
 export function validateBody<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.body = schema.parse(req.body) as any;
+      req.body = schema.parse(req.body) as T & typeof req.body;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -31,7 +38,7 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
 export function validateQuery<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.query = schema.parse(req.query) as any;
+      req.query = schema.parse(req.query) as T & typeof req.query;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -55,7 +62,7 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
 export function validateParams<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.params = schema.parse(req.params) as any;
+      req.params = schema.parse(req.params) as T & typeof req.params;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
