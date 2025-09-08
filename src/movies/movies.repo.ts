@@ -68,6 +68,7 @@ export class MoviesRepository {
     runtimeMinutes?: number | null;
     genre?: string[] | null;
     director?: string[] | null;
+    poster?: string | null;
     source: 'omdb' | 'custom';
     omdbId?: string | null;
     createdByUserId?: string | null;
@@ -75,10 +76,10 @@ export class MoviesRepository {
     const result = await db.query<MovieRow>(
       `
       INSERT INTO movies (
-        title, normalized_title, year, runtime_minutes, genre, director, 
+        title, normalized_title, year, runtime_minutes, genre, director, poster,
         source, omdb_id, created_by_user_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `,
       [
@@ -88,6 +89,7 @@ export class MoviesRepository {
         movieData.runtimeMinutes ?? null,
         movieData.genre ?? null,
         movieData.director ?? null,
+        movieData.poster ?? null,
         movieData.source,
         movieData.omdbId ?? null,
         movieData.createdByUserId ?? null,
@@ -110,6 +112,7 @@ export class MoviesRepository {
       runtimeMinutes?: number | null;
       genre?: string[] | null;
       director?: string[] | null;
+      poster?: string | null;
     }
   ): Promise<Movie | null> {
     const setParts: string[] = [];
@@ -149,6 +152,12 @@ export class MoviesRepository {
     if (movieData.director !== undefined) {
       setParts.push(`director = $${paramIndex}`);
       values.push(movieData.director);
+      paramIndex++;
+    }
+
+    if (movieData.poster !== undefined) {
+      setParts.push(`poster = $${paramIndex}`);
+      values.push(movieData.poster);
       paramIndex++;
     }
 
@@ -241,6 +250,7 @@ export class MoviesRepository {
       runtimeMinutes: row.runtime_minutes,
       genre: row.genre,
       director: row.director,
+      poster: row.poster,
       source: row.source,
       createdByUserId: row.created_by_user_id,
       createdAt: row.created_at,

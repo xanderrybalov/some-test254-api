@@ -59,6 +59,7 @@ export class UserMoviesController {
         runtimeMinutes: movie.runtimeMinutes,
         genre: movie.genre,
         director: movie.director,
+        poster: movie.poster,
         source: movie.source,
       });
     } catch (error) {

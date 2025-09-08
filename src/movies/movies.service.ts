@@ -17,6 +17,7 @@ const createMovieSchema = z.object({
   director: z
     .array(z.string().min(3))
     .min(1, 'At least one director is required'),
+  poster: z.string().url().optional(),
 });
 
 const updateMovieSchema = z.object({
@@ -25,6 +26,7 @@ const updateMovieSchema = z.object({
   runtimeMinutes: z.number().int().min(1).optional(),
   genre: z.array(z.string().min(3)).min(1).optional(),
   director: z.array(z.string().min(3)).min(1).optional(),
+  poster: z.string().url().optional(),
 });
 
 export class MoviesService {
@@ -78,6 +80,7 @@ export class MoviesService {
       runtimeMinutes: validated.runtimeMinutes,
       genre: validated.genre,
       director: validated.director,
+      poster: validated.poster || null,
       source: 'custom',
       createdByUserId: userId,
     });

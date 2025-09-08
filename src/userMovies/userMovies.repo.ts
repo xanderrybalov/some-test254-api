@@ -37,6 +37,7 @@ export class UserMoviesRepository {
       runtime_minutes: number | null;
       genre: string[] | null;
       director: string[] | null;
+      poster: string | null;
       is_favorite: boolean;
       overridden_title: string | null;
       overridden_year: number | null;
@@ -53,6 +54,7 @@ export class UserMoviesRepository {
         COALESCE(um.overridden_runtime_minutes, m.runtime_minutes) as runtime_minutes,
         COALESCE(um.overridden_genre, m.genre) as genre,
         COALESCE(um.overridden_director, m.director) as director,
+        m.poster,
         um.is_favorite,
         um.overridden_title,
         um.overridden_year,
@@ -75,6 +77,7 @@ export class UserMoviesRepository {
       runtimeMinutes: row.runtime_minutes,
       genre: row.genre,
       director: row.director,
+      poster: row.poster,
       isFavorite: row.is_favorite,
       overrides: {
         title: row.overridden_title,

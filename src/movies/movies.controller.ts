@@ -25,6 +25,7 @@ export class MoviesController {
           runtimeMinutes: movie.runtimeMinutes,
           genre: movie.genre,
           director: movie.director,
+          poster: movie.poster,
           source: movie.source,
         })),
         page: page,
@@ -67,6 +68,7 @@ export class MoviesController {
         runtimeMinutes: movie.runtimeMinutes,
         genre: movie.genre,
         director: movie.director,
+        poster: movie.poster,
         source: movie.source,
       });
     } catch (error) {
@@ -105,6 +107,7 @@ export class MoviesController {
           runtimeMinutes: movie.runtimeMinutes,
           genre: movie.genre,
           director: movie.director,
+          poster: movie.poster,
           source: movie.source,
         }))
       );

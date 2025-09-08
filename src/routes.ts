@@ -28,6 +28,7 @@ const createMovieSchema = z.object({
   runtimeMinutes: z.number().int().min(1),
   genre: z.array(z.string().min(3)).min(1),
   director: z.array(z.string().min(3)).min(1),
+  poster: z.string().url().optional(),
 });
 
 const updateMovieSchema = z.object({
@@ -36,6 +37,7 @@ const updateMovieSchema = z.object({
   runtimeMinutes: z.number().int().min(1).optional(),
   genre: z.array(z.string().min(3)).min(1).optional(),
   director: z.array(z.string().min(3)).min(1).optional(),
+  poster: z.string().url().optional(),
 });
 
 const setFavoriteSchema = z.object({

@@ -70,7 +70,7 @@ export class OMDBService {
     try {
       // Check if movie exists in cache and is fresh
       const cachedMovie = await this.getCachedMovie(imdbId);
-      if (cachedMovie && this.isCacheFresh(cachedMovie.updatedAt)) {
+      if (cachedMovie && this.isCacheFresh(cachedMovie.updatedAt) && cachedMovie.poster !== null) {
         logger.debug('Using cached movie', { imdbId });
         return cachedMovie;
       }
@@ -124,6 +124,7 @@ export class OMDBService {
         runtimeMinutes: row.runtime_minutes,
         genre: row.genre,
         director: row.director,
+        poster: row.poster,
         source: row.source,
         createdByUserId: row.created_by_user_id,
         createdAt: row.created_at,
@@ -144,8 +145,8 @@ export class OMDBService {
     try {
       await db.query(
         `
-        INSERT INTO movies (omdb_id, title, normalized_title, year, runtime_minutes, genre, director, source, created_by_user_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO movies (omdb_id, title, normalized_title, year, runtime_minutes, genre, director, poster, source, created_by_user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (omdb_id) 
         DO UPDATE SET
           title = EXCLUDED.title,
@@ -154,6 +155,7 @@ export class OMDBService {
           runtime_minutes = EXCLUDED.runtime_minutes,
           genre = EXCLUDED.genre,
           director = EXCLUDED.director,
+          poster = EXCLUDED.poster,
           updated_at = now()
       `,
         [
@@ -164,6 +166,7 @@ export class OMDBService {
           movie.runtimeMinutes,
           movie.genre,
           movie.director,
+          movie.poster,
           movie.source,
           movie.createdByUserId,
         ]
@@ -195,6 +198,7 @@ export class OMDBService {
       runtimeMinutes: parseRuntime(omdbMovie.Runtime),
       genre: parseList(omdbMovie.Genre),
       director: parseList(omdbMovie.Director),
+      poster: omdbMovie.Poster && omdbMovie.Poster !== 'N/A' ? omdbMovie.Poster : null,
       source: 'omdb' as const,
       createdByUserId: null,
     };

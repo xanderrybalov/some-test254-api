@@ -13,6 +13,7 @@ export interface Movie {
   runtimeMinutes: number | null;
   genre: string[] | null;
   director: string[] | null;
+  poster: string | null;
   source: 'omdb' | 'custom';
   createdByUserId: string | null;
   createdAt: Date;
@@ -43,6 +44,7 @@ export interface MovieWithUserData {
   runtimeMinutes: number | null;
   genre: string[] | null;
   director: string[] | null;
+  poster: string | null;
   isFavorite: boolean;
   overrides: {
     title: string | null;
@@ -135,6 +137,7 @@ export interface CreateMovieRequest {
   runtimeMinutes: number;
   genre: string[];
   director: string[];
+  poster?: string;
 }
 
 export interface UpdateMovieRequest {
@@ -143,6 +146,7 @@ export interface UpdateMovieRequest {
   runtimeMinutes?: number;
   genre?: string[];
   director?: string[];
+  poster?: string;
 }
 
 export interface SetFavoriteRequest {
@@ -169,6 +173,7 @@ export interface MovieRow {
   runtime_minutes: number | null;
   genre: string[] | null;
   director: string[] | null;
+  poster: string | null;
   source: 'omdb' | 'custom';
   created_by_user_id: string | null;
   created_at: Date;
