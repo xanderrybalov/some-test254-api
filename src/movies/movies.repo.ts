@@ -13,7 +13,7 @@ export class MoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   /**
@@ -27,7 +27,7 @@ export class MoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   /**
@@ -41,7 +41,7 @@ export class MoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   /**
@@ -91,7 +91,7 @@ export class MoviesRepository {
       movieData.createdByUserId ?? null,
     ]);
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   /**
@@ -170,7 +170,7 @@ export class MoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   /**
@@ -222,7 +222,7 @@ export class MoviesRepository {
       movieData.director,
     ]);
 
-    return this.mapRowToMovie(result.rows[0]);
+    return this.mapRowToMovie(result.rows[0]!);
   }
 
   private mapRowToMovie(row: MovieRow): Movie {

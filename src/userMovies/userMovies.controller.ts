@@ -11,6 +11,11 @@ export class UserMoviesController {
       const { userId } = req.params;
       const { favorites } = req.query;
 
+      if (!userId) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+      }
+
       const favoritesOnly = favorites === 'true';
       const movies = await moviesService.getUserMovies(userId, favoritesOnly);
 
@@ -31,6 +36,12 @@ export class UserMoviesController {
   async createUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
+      
+      if (!userId) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+      }
+      
       const movie = await moviesService.createCustomMovie(userId, req.body);
 
       res.status(201).json({
@@ -65,6 +76,12 @@ export class UserMoviesController {
   async updateUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId, movieId } = req.params;
+      
+      if (!userId || !movieId) {
+        res.status(400).json({ error: 'User ID and Movie ID are required' });
+        return;
+      }
+      
       const result = await moviesService.updateMovie(userId, movieId, req.body);
 
       if (!result) {
@@ -107,6 +124,11 @@ export class UserMoviesController {
     try {
       const { userId, movieId } = req.params;
       const { isFavorite } = req.body;
+      
+      if (!userId || !movieId) {
+        res.status(400).json({ error: 'User ID and Movie ID are required' });
+        return;
+      }
 
       if (typeof isFavorite !== 'boolean') {
         res.status(400).json({ error: 'isFavorite must be a boolean' });
@@ -138,6 +160,12 @@ export class UserMoviesController {
   async deleteUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId, movieId } = req.params;
+      
+      if (!userId || !movieId) {
+        res.status(400).json({ error: 'User ID and Movie ID are required' });
+        return;
+      }
+      
       const success = await moviesService.deleteMovie(userId, movieId);
 
       if (!success) {

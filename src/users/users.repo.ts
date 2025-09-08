@@ -13,7 +13,7 @@ export class UsersRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToUser(result.rows[0]);
+    return this.mapRowToUser(result.rows[0]!);
   }
 
   /**
@@ -27,7 +27,7 @@ export class UsersRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToUser(result.rows[0]);
+    return this.mapRowToUser(result.rows[0]!);
   }
 
   /**
@@ -39,7 +39,7 @@ export class UsersRepository {
       [username]
     );
 
-    return this.mapRowToUser(result.rows[0]);
+    return this.mapRowToUser(result.rows[0]!);
   }
 
   /**
@@ -53,7 +53,7 @@ export class UsersRepository {
       RETURNING *
     `, [username]);
 
-    return this.mapRowToUser(result.rows[0]);
+    return this.mapRowToUser(result.rows[0]!);
   }
 
   private mapRowToUser(row: UserRow): User {

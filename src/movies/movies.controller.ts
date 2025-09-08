@@ -49,6 +49,12 @@ export class MoviesController {
   async getMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { movieId } = req.params;
+      
+      if (!movieId) {
+        res.status(400).json({ error: 'Movie ID is required' });
+        return;
+      }
+      
       const movie = await moviesService.getMovieById(movieId);
 
       if (!movie) {

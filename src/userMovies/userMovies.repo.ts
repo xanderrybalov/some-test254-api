@@ -13,7 +13,7 @@ export class UserMoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToUserMovie(result.rows[0]);
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 
   /**
@@ -82,7 +82,7 @@ export class UserMoviesRepository {
       data.isFavorite ?? false,
     ]);
 
-    return this.mapRowToUserMovie(result.rows[0]);
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 
   /**
@@ -151,7 +151,7 @@ export class UserMoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToUserMovie(result.rows[0]);
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 
   /**
@@ -167,7 +167,7 @@ export class UserMoviesRepository {
 
     if (result.rows.length === 0) return null;
 
-    return this.mapRowToUserMovie(result.rows[0]);
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 
   /**
@@ -192,7 +192,7 @@ export class UserMoviesRepository {
       data.isFavorite ?? false,
     ]);
 
-    return this.mapRowToUserMovie(result.rows[0]);
+    return this.mapRowToUserMovie(result.rows[0]!);
   }
 
   /**
