@@ -6,7 +6,11 @@ export class UserMoviesController {
   /**
    * GET /api/users/:userId/movies
    */
-  async getUserMovies(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getUserMovies(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId } = req.params;
       const { favorites } = req.query;
@@ -21,10 +25,10 @@ export class UserMoviesController {
 
       res.json(movies);
     } catch (error) {
-      logger.error('Failed to get user movies', { 
-        userId: req.params.userId, 
-        query: req.query, 
-        error 
+      logger.error('Failed to get user movies', {
+        userId: req.params.userId,
+        query: req.query,
+        error,
       });
       next(error);
     }
@@ -33,15 +37,19 @@ export class UserMoviesController {
   /**
    * POST /api/users/:userId/movies
    */
-  async createUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async createUserMovie(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId } = req.params;
-      
+
       if (!userId) {
         res.status(400).json({ error: 'User ID is required' });
         return;
       }
-      
+
       const movie = await moviesService.createCustomMovie(userId, req.body);
 
       res.status(201).json({
@@ -60,11 +68,11 @@ export class UserMoviesController {
           return;
         }
       }
-      
-      logger.error('Failed to create user movie', { 
-        userId: req.params.userId, 
-        body: req.body, 
-        error 
+
+      logger.error('Failed to create user movie', {
+        userId: req.params.userId,
+        body: req.body,
+        error,
       });
       next(error);
     }
@@ -73,15 +81,19 @@ export class UserMoviesController {
   /**
    * PUT /api/users/:userId/movies/:movieId
    */
-  async updateUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateUserMovie(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId, movieId } = req.params;
-      
+
       if (!userId || !movieId) {
         res.status(400).json({ error: 'User ID and Movie ID are required' });
         return;
       }
-      
+
       const result = await moviesService.updateMovie(userId, movieId, req.body);
 
       if (!result) {
@@ -107,11 +119,11 @@ export class UserMoviesController {
         }
       }
 
-      logger.error('Failed to update user movie', { 
-        userId: req.params.userId, 
-        movieId: req.params.movieId, 
-        body: req.body, 
-        error 
+      logger.error('Failed to update user movie', {
+        userId: req.params.userId,
+        movieId: req.params.movieId,
+        body: req.body,
+        error,
       });
       next(error);
     }
@@ -120,11 +132,15 @@ export class UserMoviesController {
   /**
    * PUT /api/users/:userId/movies/:movieId/favorite
    */
-  async setFavorite(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async setFavorite(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId, movieId } = req.params;
       const { isFavorite } = req.body;
-      
+
       if (!userId || !movieId) {
         res.status(400).json({ error: 'User ID and Movie ID are required' });
         return;
@@ -135,7 +151,11 @@ export class UserMoviesController {
         return;
       }
 
-      const success = await moviesService.setFavorite(userId, movieId, isFavorite);
+      const success = await moviesService.setFavorite(
+        userId,
+        movieId,
+        isFavorite
+      );
 
       if (!success) {
         res.status(404).json({ error: 'Movie not found' });
@@ -144,11 +164,11 @@ export class UserMoviesController {
 
       res.json({ ok: true });
     } catch (error) {
-      logger.error('Failed to set favorite', { 
-        userId: req.params.userId, 
-        movieId: req.params.movieId, 
-        body: req.body, 
-        error 
+      logger.error('Failed to set favorite', {
+        userId: req.params.userId,
+        movieId: req.params.movieId,
+        body: req.body,
+        error,
       });
       next(error);
     }
@@ -157,15 +177,19 @@ export class UserMoviesController {
   /**
    * DELETE /api/users/:userId/movies/:movieId
    */
-  async deleteUserMovie(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteUserMovie(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId, movieId } = req.params;
-      
+
       if (!userId || !movieId) {
         res.status(400).json({ error: 'User ID and Movie ID are required' });
         return;
       }
-      
+
       const success = await moviesService.deleteMovie(userId, movieId);
 
       if (!success) {
@@ -175,10 +199,10 @@ export class UserMoviesController {
 
       res.json({ ok: true });
     } catch (error) {
-      logger.error('Failed to delete user movie', { 
-        userId: req.params.userId, 
-        movieId: req.params.movieId, 
-        error 
+      logger.error('Failed to delete user movie', {
+        userId: req.params.userId,
+        movieId: req.params.movieId,
+        error,
       });
       next(error);
     }

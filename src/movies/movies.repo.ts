@@ -72,24 +72,27 @@ export class MoviesRepository {
     omdbId?: string | null;
     createdByUserId?: string | null;
   }): Promise<Movie> {
-    const result = await db.query<MovieRow>(`
+    const result = await db.query<MovieRow>(
+      `
       INSERT INTO movies (
         title, normalized_title, year, runtime_minutes, genre, director, 
         source, omdb_id, created_by_user_id
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
-    `, [
-      movieData.title,
-      movieData.normalizedTitle,
-      movieData.year ?? null,
-      movieData.runtimeMinutes ?? null,
-      movieData.genre ?? null,
-      movieData.director ?? null,
-      movieData.source,
-      movieData.omdbId ?? null,
-      movieData.createdByUserId ?? null,
-    ]);
+    `,
+      [
+        movieData.title,
+        movieData.normalizedTitle,
+        movieData.year ?? null,
+        movieData.runtimeMinutes ?? null,
+        movieData.genre ?? null,
+        movieData.director ?? null,
+        movieData.source,
+        movieData.omdbId ?? null,
+        movieData.createdByUserId ?? null,
+      ]
+    );
 
     return this.mapRowToMovie(result.rows[0]!);
   }
@@ -98,8 +101,8 @@ export class MoviesRepository {
    * Update movie (only for custom movies owned by user)
    */
   async update(
-    movieId: string, 
-    userId: string, 
+    movieId: string,
+    userId: string,
     movieData: {
       title?: string;
       normalizedTitle?: string;
@@ -197,7 +200,8 @@ export class MoviesRepository {
     genre: string[] | null;
     director: string[] | null;
   }): Promise<Movie> {
-    const result = await db.query<MovieRow>(`
+    const result = await db.query<MovieRow>(
+      `
       INSERT INTO movies (
         omdb_id, title, normalized_title, year, runtime_minutes, genre, director, source
       )
@@ -212,15 +216,17 @@ export class MoviesRepository {
         director = EXCLUDED.director,
         updated_at = now()
       RETURNING *
-    `, [
-      movieData.omdbId,
-      movieData.title,
-      movieData.normalizedTitle,
-      movieData.year,
-      movieData.runtimeMinutes,
-      movieData.genre,
-      movieData.director,
-    ]);
+    `,
+      [
+        movieData.omdbId,
+        movieData.title,
+        movieData.normalizedTitle,
+        movieData.year,
+        movieData.runtimeMinutes,
+        movieData.genre,
+        movieData.director,
+      ]
+    );
 
     return this.mapRowToMovie(result.rows[0]!);
   }

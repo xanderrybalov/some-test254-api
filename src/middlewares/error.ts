@@ -47,7 +47,10 @@ export function errorHandler(
   }
 
   // Database connection errors
-  if (error.message.includes('ECONNREFUSED') || error.message.includes('database')) {
+  if (
+    error.message.includes('ECONNREFUSED') ||
+    error.message.includes('database')
+  ) {
     res.status(503).json({
       error: 'Service temporarily unavailable',
     });
@@ -71,7 +74,10 @@ export function errorHandler(
 /**
  * Create operational error
  */
-export function createError(message: string, statusCode: number = 500): AppError {
+export function createError(
+  message: string,
+  statusCode: number = 500
+): AppError {
   const error = new Error(message) as AppError;
   error.statusCode = statusCode;
   error.isOperational = true;

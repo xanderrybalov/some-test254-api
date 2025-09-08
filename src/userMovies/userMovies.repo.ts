@@ -5,7 +5,10 @@ export class UserMoviesRepository {
   /**
    * Find user-movie relationship
    */
-  async findByUserAndMovie(userId: string, movieId: string): Promise<UserMovie | null> {
+  async findByUserAndMovie(
+    userId: string,
+    movieId: string
+  ): Promise<UserMovie | null> {
     const result = await db.query<UserMovieRow>(
       'SELECT * FROM user_movies WHERE user_id = $1 AND movie_id = $2',
       [userId, movieId]
@@ -19,12 +22,16 @@ export class UserMoviesRepository {
   /**
    * Get user's movies with merged data (movie + user overrides)
    */
-  async getUserMovies(userId: string, favoritesOnly: boolean = false): Promise<MovieWithUserData[]> {
-    const whereClause = favoritesOnly 
+  async getUserMovies(
+    userId: string,
+    favoritesOnly: boolean = false
+  ): Promise<MovieWithUserData[]> {
+    const whereClause = favoritesOnly
       ? 'WHERE um.user_id = $1 AND um.is_favorite = true'
       : 'WHERE um.user_id = $1';
 
-    const result = await db.query<any>(`
+    const result = await db.query<any>(
+      `
       SELECT 
         m.id,
         COALESCE(um.overridden_title, m.title) as title,
@@ -43,7 +50,9 @@ export class UserMoviesRepository {
       JOIN movies m ON um.movie_id = m.id
       ${whereClause}
       ORDER BY um.updated_at DESC
-    `, favoritesOnly ? [userId] : [userId]);
+    `,
+      favoritesOnly ? [userId] : [userId]
+    );
 
     return result.rows.map(row => ({
       id: row.id,
@@ -72,15 +81,14 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    const result = await db.query<UserMovieRow>(`
+    const result = await db.query<UserMovieRow>(
+      `
       INSERT INTO user_movies (user_id, movie_id, is_favorite)
       VALUES ($1, $2, $3)
       RETURNING *
-    `, [
-      data.userId,
-      data.movieId,
-      data.isFavorite ?? false,
-    ]);
+    `,
+      [data.userId, data.movieId, data.isFavorite ?? false]
+    );
 
     return this.mapRowToUserMovie(result.rows[0]!);
   }
@@ -157,13 +165,20 @@ export class UserMoviesRepository {
   /**
    * Set favorite status
    */
-  async setFavorite(userId: string, movieId: string, isFavorite: boolean): Promise<UserMovie | null> {
-    const result = await db.query<UserMovieRow>(`
+  async setFavorite(
+    userId: string,
+    movieId: string,
+    isFavorite: boolean
+  ): Promise<UserMovie | null> {
+    const result = await db.query<UserMovieRow>(
+      `
       UPDATE user_movies 
       SET is_favorite = $3, updated_at = now()
       WHERE user_id = $1 AND movie_id = $2
       RETURNING *
-    `, [userId, movieId, isFavorite]);
+    `,
+      [userId, movieId, isFavorite]
+    );
 
     if (result.rows.length === 0) return null;
 
@@ -178,7 +193,8 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    const result = await db.query<UserMovieRow>(`
+    const result = await db.query<UserMovieRow>(
+      `
       INSERT INTO user_movies (user_id, movie_id, is_favorite)
       VALUES ($1, $2, $3)
       ON CONFLICT (user_id, movie_id) 
@@ -186,11 +202,9 @@ export class UserMoviesRepository {
         is_favorite = EXCLUDED.is_favorite,
         updated_at = now()
       RETURNING *
-    `, [
-      data.userId,
-      data.movieId,
-      data.isFavorite ?? false,
-    ]);
+    `,
+      [data.userId, data.movieId, data.isFavorite ?? false]
+    );
 
     return this.mapRowToUserMovie(result.rows[0]!);
   }

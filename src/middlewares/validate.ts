@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
 export type ValidatedRequest<
   Body = unknown,
-  Query = unknown, 
-  Params = unknown
+  Query = unknown,
+  Params = unknown,
 > = Request<Params, unknown, Body, Query>;
 
 export type InferZodType<T> = T extends z.ZodSchema<infer U> ? U : never;

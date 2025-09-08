@@ -6,10 +6,14 @@ export class UsersController {
   /**
    * POST /api/users/ensure
    */
-  async ensureUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async ensureUser(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const user = await usersService.ensureUser(req.body);
-      
+
       res.json({
         user: {
           id: user.id,

@@ -46,12 +46,15 @@ export class UsersRepository {
    * Upsert user (find or create)
    */
   async upsert(username: string): Promise<User> {
-    const result = await db.query<UserRow>(`
+    const result = await db.query<UserRow>(
+      `
       INSERT INTO users (username) 
       VALUES ($1) 
       ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username
       RETURNING *
-    `, [username]);
+    `,
+      [username]
+    );
 
     return this.mapRowToUser(result.rows[0]!);
   }

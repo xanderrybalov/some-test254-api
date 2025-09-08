@@ -13,7 +13,7 @@ export class Database {
       connectionTimeoutMillis: 2000,
     });
 
-    this.pool.on('error', (err) => {
+    this.pool.on('error', err => {
       logger.error('Unexpected error on idle client', err);
     });
   }

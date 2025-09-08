@@ -7,10 +7,10 @@
 export function normalizeTitle(rawTitle: string): string {
   // Replace separators (dashes, colons) with spaces, then remove other non-English characters
   let normalized = rawTitle.replace(/[-:]/g, ' ').replace(/[^A-Za-z ]/g, '');
-  
+
   // Trim and collapse multiple spaces into single space
   normalized = normalized.trim().replace(/\s+/g, ' ');
-  
+
   // Capitalize first letter of each word, lowercase the rest
   normalized = normalized
     .split(' ')
@@ -19,7 +19,7 @@ export function normalizeTitle(rawTitle: string): string {
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
     .join(' ');
-    
+
   return normalized;
 }
 
@@ -28,7 +28,7 @@ export function normalizeTitle(rawTitle: string): string {
  */
 export function parseRuntime(runtime: string): number | null {
   if (!runtime || runtime === 'N/A') return null;
-  
+
   const match = runtime.match(/(\d+)/);
   return match?.[1] ? parseInt(match[1], 10) : null;
 }
@@ -38,7 +38,7 @@ export function parseRuntime(runtime: string): number | null {
  */
 export function parseYear(year: string): number | null {
   if (!year || year === 'N/A') return null;
-  
+
   // Extract first 4-digit year
   const match = year.match(/(\d{4})/);
   if (match?.[1]) {
@@ -48,7 +48,7 @@ export function parseYear(year: string): number | null {
       return yearNum;
     }
   }
-  
+
   return null;
 }
 
@@ -57,11 +57,11 @@ export function parseYear(year: string): number | null {
  */
 export function parseList(list: string): string[] | null {
   if (!list || list === 'N/A') return null;
-  
+
   const items = list
     .split(',')
     .map(item => item.trim())
     .filter(item => item.length > 0);
-    
+
   return items.length > 0 ? items : null;
 }

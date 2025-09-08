@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { Movie, CreateMovieRequest, UpdateMovieRequest } from '../domain/types.js';
+import {
+  Movie,
+  CreateMovieRequest,
+  UpdateMovieRequest,
+} from '../domain/types.js';
 import { normalizeTitle } from '../domain/normalize.js';
 import { moviesRepo } from './movies.repo.js';
 import { userMoviesRepo } from '../userMovies/userMovies.repo.js';
@@ -10,7 +14,9 @@ const createMovieSchema = z.object({
   year: z.number().int().min(1888).max(2100),
   runtimeMinutes: z.number().int().min(1),
   genre: z.array(z.string().min(3)).min(1, 'At least one genre is required'),
-  director: z.array(z.string().min(3)).min(1, 'At least one director is required'),
+  director: z
+    .array(z.string().min(3))
+    .min(1, 'At least one director is required'),
 });
 
 const updateMovieSchema = z.object({
@@ -50,12 +56,16 @@ export class MoviesService {
   /**
    * Create custom movie
    */
-  async createCustomMovie(userId: string, data: CreateMovieRequest): Promise<Movie> {
+  async createCustomMovie(
+    userId: string,
+    data: CreateMovieRequest
+  ): Promise<Movie> {
     const validated = createMovieSchema.parse(data);
     const normalizedTitle = normalizeTitle(validated.title);
 
     // Check for duplicate title
-    const existingMovie = await moviesRepo.findByNormalizedTitle(normalizedTitle);
+    const existingMovie =
+      await moviesRepo.findByNormalizedTitle(normalizedTitle);
     if (existingMovie) {
       throw new Error('A movie with the same name already exists.');
     }
@@ -98,12 +108,14 @@ export class MoviesService {
     // If it's a custom movie created by this user, update the movie itself
     if (movie.source === 'custom' && movie.createdByUserId === userId) {
       const updateData: any = { ...validated };
-      
+
       if (validated.title) {
         updateData.normalizedTitle = normalizeTitle(validated.title);
-        
+
         // Check for duplicate title (exclude current movie)
-        const existingMovie = await moviesRepo.findByNormalizedTitle(updateData.normalizedTitle);
+        const existingMovie = await moviesRepo.findByNormalizedTitle(
+          updateData.normalizedTitle
+        );
         if (existingMovie && existingMovie.id !== movieId) {
           throw new Error('A movie with the same name already exists.');
         }
@@ -148,9 +160,13 @@ export class MoviesService {
   ): Promise<boolean> {
     // Ensure user-movie relationship exists
     const existing = await userMoviesRepo.findByUserAndMovie(userId, movieId);
-    
+
     if (existing) {
-      const result = await userMoviesRepo.setFavorite(userId, movieId, isFavorite);
+      const result = await userMoviesRepo.setFavorite(
+        userId,
+        movieId,
+        isFavorite
+      );
       return result !== null;
     } else {
       // Create relationship if it doesn't exist

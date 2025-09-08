@@ -3,7 +3,8 @@ import { User } from '../domain/types.js';
 import { usersRepo } from './users.repo.js';
 
 const createUserSchema = z.object({
-  username: z.string()
+  username: z
+    .string()
     .min(3, 'Username must be at least 3 characters')
     .max(50, 'Username must be at most 50 characters')
     .trim(),

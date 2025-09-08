@@ -1,8 +1,17 @@
 import { fetch } from 'undici';
 import { env } from '../config/env.js';
 import logger from '../config/logger.js';
-import { OMDBSearchResponse, OMDBMovieDetails, Movie } from '../domain/types.js';
-import { normalizeTitle, parseRuntime, parseYear, parseList } from '../domain/normalize.js';
+import {
+  OMDBSearchResponse,
+  OMDBMovieDetails,
+  Movie,
+} from '../domain/types.js';
+import {
+  normalizeTitle,
+  parseRuntime,
+  parseYear,
+  parseList,
+} from '../domain/normalize.js';
 import db from '../db/index.js';
 
 export class OMDBService {
@@ -13,7 +22,10 @@ export class OMDBService {
   /**
    * Search movies in OMDB API
    */
-  async searchMovies(query: string, page: number = 1): Promise<{
+  async searchMovies(
+    query: string,
+    page: number = 1
+  ): Promise<{
     items: Movie[];
     total: number;
   }> {
@@ -24,19 +36,23 @@ export class OMDBService {
     );
 
     if (searchResponse.Response === 'False') {
-      logger.debug('OMDB search returned no results', { query, error: searchResponse.Error });
+      logger.debug('OMDB search returned no results', {
+        query,
+        error: searchResponse.Error,
+      });
       return { items: [], total: 0 };
     }
 
     // Get detailed info for each movie and cache in database
-    const moviePromises = searchResponse.Search.map(item => 
+    const moviePromises = searchResponse.Search.map(item =>
       this.getMovieDetailsAndCache(item.imdbID)
     );
 
     const movies = await Promise.allSettled(moviePromises);
     const validMovies = movies
-      .filter((result): result is PromiseFulfilledResult<Movie | null> => 
-        result.status === 'fulfilled' && result.value !== null
+      .filter(
+        (result): result is PromiseFulfilledResult<Movie | null> =>
+          result.status === 'fulfilled' && result.value !== null
       )
       .map(result => result.value!);
 
@@ -64,16 +80,19 @@ export class OMDBService {
       );
 
       if (details.Response === 'False') {
-        logger.warn('OMDB movie details not found', { imdbId, error: details.Error });
+        logger.warn('OMDB movie details not found', {
+          imdbId,
+          error: details.Error,
+        });
         return null;
       }
 
       // Convert OMDB response to our format
       const movieData = this.convertOMDBToMovie(details);
-      
+
       // Cache in database and get full movie object back
       await this.cacheMovie(movieData);
-      
+
       // Fetch the cached movie to get the full object with id, createdAt, updatedAt
       return this.getCachedMovie(imdbId);
     } catch (error) {
@@ -118,9 +137,12 @@ export class OMDBService {
   /**
    * Cache movie in database (upsert)
    */
-  private async cacheMovie(movie: Omit<Movie, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  private async cacheMovie(
+    movie: Omit<Movie, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<void> {
     try {
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO movies (omdb_id, title, normalized_title, year, runtime_minutes, genre, director, source, created_by_user_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (omdb_id) 
@@ -132,17 +154,19 @@ export class OMDBService {
           genre = EXCLUDED.genre,
           director = EXCLUDED.director,
           updated_at = now()
-      `, [
-        movie.omdbId,
-        movie.title,
-        movie.normalizedTitle,
-        movie.year,
-        movie.runtimeMinutes,
-        movie.genre,
-        movie.director,
-        movie.source,
-        movie.createdByUserId,
-      ]);
+      `,
+        [
+          movie.omdbId,
+          movie.title,
+          movie.normalizedTitle,
+          movie.year,
+          movie.runtimeMinutes,
+          movie.genre,
+          movie.director,
+          movie.source,
+          movie.createdByUserId,
+        ]
+      );
     } catch (error) {
       logger.error('Failed to cache movie', { movie, error });
     }
@@ -159,7 +183,9 @@ export class OMDBService {
   /**
    * Convert OMDB response to our Movie format
    */
-  private convertOMDBToMovie(omdbMovie: OMDBMovieDetails): Omit<Movie, 'id' | 'createdAt' | 'updatedAt'> {
+  private convertOMDBToMovie(
+    omdbMovie: OMDBMovieDetails
+  ): Omit<Movie, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       omdbId: omdbMovie.imdbID,
       title: omdbMovie.Title,
@@ -176,7 +202,10 @@ export class OMDBService {
   /**
    * Fetch with retry logic and exponential backoff
    */
-  private async fetchWithRetry<T>(url: string, retryCount: number = 0): Promise<T> {
+  private async fetchWithRetry<T>(
+    url: string,
+    retryCount: number = 0
+  ): Promise<T> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -184,7 +213,7 @@ export class OMDBService {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'User-Agent': 'Movies-API/1.0',
         },
       });
@@ -195,9 +224,12 @@ export class OMDBService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json() as T;
+      return (await response.json()) as T;
     } catch (error) {
-      logger.warn(`OMDB API request failed (attempt ${retryCount + 1})`, { url, error });
+      logger.warn(`OMDB API request failed (attempt ${retryCount + 1})`, {
+        url,
+        error,
+      });
 
       if (retryCount < this.maxRetries) {
         // Exponential backoff: 1s, 2s, 4s...
