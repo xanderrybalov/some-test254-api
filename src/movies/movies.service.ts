@@ -107,7 +107,7 @@ export class MoviesService {
 
     // If it's a custom movie created by this user, update the movie itself
     if (movie.source === 'custom' && movie.createdByUserId === userId) {
-      const updateData: any = { ...validated };
+      const updateData: UpdateMovieRequest & { normalizedTitle?: string } = { ...validated };
 
       if (validated.title) {
         updateData.normalizedTitle = normalizeTitle(validated.title);

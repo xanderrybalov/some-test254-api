@@ -176,6 +176,7 @@ export interface MovieRow {
 }
 
 export interface UserMovieRow {
+  id: string;
   user_id: string;
   movie_id: string;
   is_favorite: boolean;

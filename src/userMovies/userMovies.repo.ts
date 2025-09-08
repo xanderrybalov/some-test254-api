@@ -30,7 +30,21 @@ export class UserMoviesRepository {
       ? 'WHERE um.user_id = $1 AND um.is_favorite = true'
       : 'WHERE um.user_id = $1';
 
-    const result = await db.query<any>(
+    const result = await db.query<{
+      id: string;
+      title: string;
+      year: number | null;
+      runtime_minutes: number | null;
+      genre: string[] | null;
+      director: string[] | null;
+      is_favorite: boolean;
+      overridden_title: string | null;
+      overridden_year: number | null;
+      overridden_runtime_minutes: number | null;
+      overridden_genre: string[] | null;
+      overridden_director: string[] | null;
+      source: string;
+    }>(
       `
       SELECT 
         m.id,
@@ -69,7 +83,7 @@ export class UserMoviesRepository {
         genre: row.overridden_genre,
         director: row.overridden_director,
       },
-      source: row.source,
+      source: row.source as 'omdb' | 'custom',
     }));
   }
 
@@ -108,7 +122,7 @@ export class UserMoviesRepository {
     }
   ): Promise<UserMovie | null> {
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | string[] | null)[] = [];
     let paramIndex = 1;
 
     if (overrides.title !== undefined) {

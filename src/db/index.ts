@@ -18,9 +18,9 @@ export class Database {
     });
   }
 
-  async query<T extends QueryResultRow = any>(
+  async query<T extends QueryResultRow = QueryResultRow>(
     text: string,
-    params?: any[]
+    params?: unknown[]
   ): Promise<QueryResult<T>> {
     const start = Date.now();
     try {

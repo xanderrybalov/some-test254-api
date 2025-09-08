@@ -113,7 +113,7 @@ export class MoviesRepository {
     }
   ): Promise<Movie | null> {
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | string[] | null)[] = [];
     let paramIndex = 1;
 
     if (movieData.title !== undefined) {

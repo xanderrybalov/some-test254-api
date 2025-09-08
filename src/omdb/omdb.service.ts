@@ -5,6 +5,7 @@ import {
   OMDBSearchResponse,
   OMDBMovieDetails,
   Movie,
+  MovieRow,
 } from '../domain/types.js';
 import {
   normalizeTitle,
@@ -106,14 +107,14 @@ export class OMDBService {
    */
   private async getCachedMovie(omdbId: string): Promise<Movie | null> {
     try {
-      const result = await db.query<any>(
+      const result = await db.query<MovieRow>(
         'SELECT * FROM movies WHERE omdb_id = $1',
         [omdbId]
       );
 
       if (result.rows.length === 0) return null;
 
-      const row = result.rows[0];
+      const row = result.rows[0]!;
       return {
         id: row.id,
         omdbId: row.omdb_id,
