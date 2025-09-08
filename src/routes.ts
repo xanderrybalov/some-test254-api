@@ -46,6 +46,11 @@ const getMoviesByIdsSchema = z.object({
   ids: z.array(z.string().uuid()),
 });
 
+const searchMoviesSchema = z.object({
+  query: z.string().min(1, 'Query must be at least 1 character').trim(),
+  page: z.number().int().min(1).optional().default(1),
+});
+
 // Users routes
 router.post(
   '/users/ensure',
@@ -54,9 +59,10 @@ router.post(
 );
 
 // Movies routes
-router.get(
+router.post(
   '/movies/search',
   searchRateLimit,
+  validateBody(searchMoviesSchema),
   moviesController.searchMovies.bind(moviesController)
 );
 

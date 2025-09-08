@@ -77,7 +77,7 @@ npm start
 
 ### Movie search
 
-* `GET /api/movies/search?query=matrix&page=1` — Search via OMDB
+* `POST /api/movies/search` — Search via OMDB (body: query, page)
 * `GET /api/movies/:movieId` — Get movie details
 * `POST /api/movies/by-ids` — Fetch multiple movies by IDs
 
@@ -104,7 +104,7 @@ npm run test:e2e
 npm run test:coverage
 ```
 
-## Testing with Postman
+`## Testing with Postman
 
 ### Setup
 
@@ -188,7 +188,7 @@ npm run test:coverage
 
 10. **Delete movie**
     **DELETE** `{{baseUrl}}/users/{userId}/movies/{movieId}`
-
+`
 ### Testing order
 
 1. Create a user (#1)

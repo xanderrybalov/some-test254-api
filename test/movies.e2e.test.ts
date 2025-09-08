@@ -15,11 +15,11 @@ describe('Movies API', () => {
     testUserId = userResponse.body.user.id;
   });
 
-  describe('GET /api/movies/search', () => {
+  describe('POST /api/movies/search', () => {
     it('should search movies via OMDB', async () => {
       const response = await request(app)
-        .get('/api/movies/search')
-        .query({ query: 'matrix', page: 1 })
+        .post('/api/movies/search')
+        .send({ query: 'matrix', page: 1 })
         .expect(200);
 
       expect(response.body).toMatchObject({
@@ -31,14 +31,15 @@ describe('Movies API', () => {
 
     it('should require query parameter', async () => {
       await request(app)
-        .get('/api/movies/search')
+        .post('/api/movies/search')
+        .send({})
         .expect(400);
     });
 
     it('should validate page parameter', async () => {
       await request(app)
-        .get('/api/movies/search')
-        .query({ query: 'test', page: 0 })
+        .post('/api/movies/search')
+        .send({ query: 'test', page: 0 })
         .expect(400);
     });
   });

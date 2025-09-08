@@ -4,7 +4,7 @@ import logger from '../config/logger.js';
 
 export class MoviesController {
   /**
-   * GET /api/movies/search
+   * POST /api/movies/search
    */
   async searchMovies(
     req: Request,
@@ -12,20 +12,9 @@ export class MoviesController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { query, page = '1' } = req.query;
+      const { query, page } = req.body;
 
-      if (!query || typeof query !== 'string') {
-        res.status(400).json({ error: 'Query parameter is required' });
-        return;
-      }
-
-      const pageNum = parseInt(page as string, 10);
-      if (isNaN(pageNum) || pageNum < 1) {
-        res.status(400).json({ error: 'Page must be a positive integer' });
-        return;
-      }
-
-      const result = await moviesService.searchMovies(query, pageNum);
+      const result = await moviesService.searchMovies(query, page);
 
       res.json({
         items: result.items.map(movie => ({
@@ -38,11 +27,11 @@ export class MoviesController {
           director: movie.director,
           source: movie.source,
         })),
-        page: pageNum,
+        page: page,
         total: result.total,
       });
     } catch (error) {
-      logger.error('Failed to search movies', { query: req.query, error });
+      logger.error('Failed to search movies', { body: req.body, error });
       next(error);
     }
   }
