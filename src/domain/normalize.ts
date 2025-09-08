@@ -5,8 +5,8 @@
  * 3. Capitalize first letter of each word, lowercase the rest
  */
 export function normalizeTitle(rawTitle: string): string {
-  // Remove all non-English letters and non-letter symbols, keep only A-Z a-z and spaces
-  let normalized = rawTitle.replace(/[^A-Za-z ]/g, ' ');
+  // Replace separators (dashes, colons) with spaces, then remove other non-English characters
+  let normalized = rawTitle.replace(/[-:]/g, ' ').replace(/[^A-Za-z ]/g, '');
   
   // Trim and collapse multiple spaces into single space
   normalized = normalized.trim().replace(/\s+/g, ' ');
@@ -30,7 +30,7 @@ export function parseRuntime(runtime: string): number | null {
   if (!runtime || runtime === 'N/A') return null;
   
   const match = runtime.match(/(\d+)/);
-  return match ? parseInt(match[1], 10) : null;
+  return match?.[1] ? parseInt(match[1], 10) : null;
 }
 
 /**
@@ -41,7 +41,7 @@ export function parseYear(year: string): number | null {
   
   // Extract first 4-digit year
   const match = year.match(/(\d{4})/);
-  if (match) {
+  if (match?.[1]) {
     const yearNum = parseInt(match[1], 10);
     // Basic validation for reasonable years
     if (yearNum >= 1888 && yearNum <= 2100) {
