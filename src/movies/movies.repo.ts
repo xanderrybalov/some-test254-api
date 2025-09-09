@@ -59,6 +59,28 @@ export class MoviesRepository {
   }
 
   /**
+   * Search custom movies by title using trigram similarity
+   */
+  async searchByTitle(query: string, limit: number = 20): Promise<Movie[]> {
+    if (query.length < 2) return [];
+
+    const result = await db.query<MovieRow>(
+      `
+      SELECT *, similarity(title, $1) as sim_score 
+      FROM movies 
+      WHERE source = 'custom' 
+        AND is_deleted = false 
+        AND (title ILIKE $2 OR similarity(title, $1) > 0.3)
+      ORDER BY sim_score DESC, created_at DESC
+      LIMIT $3
+      `,
+      [query, `%${query}%`, limit]
+    );
+
+    return result.rows.map(row => this.mapRowToMovie(row));
+  }
+
+  /**
    * Create new movie
    */
   async create(movieData: {

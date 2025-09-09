@@ -42,6 +42,42 @@ export class MoviesService {
   }
 
   /**
+   * Hybrid search - combines OMDB results with custom movies
+   */
+  async searchMoviesHybrid(query: string, page: number = 1, includeCustom: boolean = true) {
+    if (query.length < 1) {
+      throw new Error('Query must be at least 1 character');
+    }
+
+    // Always search OMDB
+    const omdbResults = await omdbService.searchMovies(query, page);
+
+    if (!includeCustom) {
+      return omdbResults;
+    }
+
+    // Search custom movies in parallel
+    const customMovies = await moviesRepo.searchByTitle(query, 10); // Limit custom results
+
+    // Combine results - put custom movies first, then OMDB
+    const combinedItems = [
+      ...customMovies,
+      ...omdbResults.items.filter(omdbMovie => 
+        // Avoid duplicates by checking if any custom movie has similar title
+        !customMovies.some(customMovie => 
+          customMovie.title.toLowerCase() === omdbMovie.title.toLowerCase()
+        )
+      )
+    ];
+
+    return {
+      items: combinedItems,
+      page,
+      total: omdbResults.total + customMovies.length,
+    };
+  }
+
+  /**
    * Get movie by ID
    */
   async getMovieById(movieId: string): Promise<Movie | null> {

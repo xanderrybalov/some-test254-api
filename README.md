@@ -105,9 +105,11 @@ CORS_ORIGIN=http://localhost:3000
 * `POST /api/auth/login` — Login user  
 * `POST /api/auth/verify` — Verify JWT token (token via header or body)
 
-### Movie search (Public)
+### Movie search (Public - with optional authentication)
 
-* `POST /api/movies/search` — Search via OMDB (body: query, page)
+* `POST /api/movies/search` — **Hybrid search**: OMDB + custom movies (body: query, page)
+  - **Without token**: searches only OMDB API
+  - **With token**: searches OMDB API + your custom movies (custom movies shown first)
 * `GET /api/movies/:movieId` — Get movie details
 * `POST /api/movies/by-ids` — Fetch multiple movies by IDs
 
@@ -195,15 +197,27 @@ npm run test:coverage
    }
    ```
 
-4. **Search movies via OMDB**
+4. **Search movies (hybrid)**
    **POST** `{{baseUrl}}/movies/search`
 
+   **Without token** (OMDB only):
    ```json
    {
      "query": "matrix",
      "page": 1
    }
    ```
+
+   **With token** (OMDB + custom movies):
+   Headers: `Authorization: Bearer {token}`
+   ```json
+   {
+     "query": "matrix",
+     "page": 1
+   }
+   ```
+
+   Response includes `includesCustomMovies: true/false` field.
 
 5. **Fetch movies by IDs**
    **POST** `{{baseUrl}}/movies/by-ids`

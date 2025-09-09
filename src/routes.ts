@@ -98,6 +98,7 @@ router.post(
 // Movies routes
 router.post(
   '/movies/search',
+  optionalAuth, // Optional authentication - includes custom movies if user is logged in
   searchRateLimit,
   validateBody(searchMoviesSchema),
   moviesController.searchMovies.bind(moviesController)

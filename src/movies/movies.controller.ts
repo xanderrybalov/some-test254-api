@@ -5,6 +5,7 @@ import logger from '../config/logger.js';
 export class MoviesController {
   /**
    * POST /api/movies/search
+   * Hybrid search: OMDB + custom movies (if user is authenticated)
    */
   async searchMovies(
     req: Request,
@@ -14,7 +15,10 @@ export class MoviesController {
     try {
       const { query, page } = req.body;
 
-      const result = await moviesService.searchMovies(query, page);
+      // Check if user is authenticated (optional authentication)
+      const includeCustom = !!req.user; // Include custom movies if user is logged in
+
+      const result = await moviesService.searchMoviesHybrid(query, page, includeCustom);
 
       res.json({
         items: result.items.map(movie => ({
@@ -30,6 +34,7 @@ export class MoviesController {
         })),
         page: page,
         total: result.total,
+        includesCustomMovies: includeCustom, // Let frontend know if custom movies are included
       });
     } catch (error) {
       logger.error('Failed to search movies', { body: req.body, error });
