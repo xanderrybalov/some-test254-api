@@ -30,6 +30,9 @@ const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().positive())
     .default('24'),
+  JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+  PASSWORD_PEPPER: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

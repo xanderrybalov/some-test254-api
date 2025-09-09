@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   username: string;
+  email?: string;
   createdAt: Date;
 }
 
@@ -163,6 +164,8 @@ export interface GetMoviesByIdsRequest {
 export interface UserRow {
   id: string;
   username: string;
+  email: string | null;
+  password_hash: string | null;
   created_at: Date;
 }
 
@@ -197,4 +200,33 @@ export interface UserMovieRow {
   effective_normalized_title: string;
   created_at: Date;
   updated_at: Date;
+}
+
+// Authentication types
+export interface RegisterRequest {
+  username: string;
+  email?: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  login: string; // username or email
+  password: string;
+}
+
+export interface LoginResponse {
+  user: {
+    id: string;
+    username: string;
+    email?: string;
+  };
+  token: string;
+  expiresIn: string;
+}
+
+export interface JWTPayload {
+  userId: string;
+  username: string;
+  iat?: number;
+  exp?: number;
 }

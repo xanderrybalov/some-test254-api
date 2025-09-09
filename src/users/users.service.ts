@@ -1,23 +1,7 @@
-import { z } from 'zod';
 import { User } from '../domain/types.js';
 import { usersRepo } from './users.repo.js';
 
-const createUserSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be at most 50 characters')
-    .trim(),
-});
-
 export class UsersService {
-  /**
-   * Ensure user exists (find or create)
-   */
-  async ensureUser(data: { username: string }): Promise<User> {
-    const validated = createUserSchema.parse(data);
-    return usersRepo.upsert(validated.username);
-  }
 
   /**
    * Find user by ID
@@ -31,6 +15,31 @@ export class UsersService {
    */
   async findByUsername(username: string): Promise<User | null> {
     return usersRepo.findByUsername(username);
+  }
+
+  /**
+   * Find user by email
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    return usersRepo.findByEmail(email);
+  }
+
+  /**
+   * Find user by username or email (for login)
+   */
+  async findByUsernameOrEmail(login: string): Promise<(User & { passwordHash?: string }) | null> {
+    return usersRepo.findByUsernameOrEmail(login);
+  }
+
+  /**
+   * Create user with password (for registration)
+   */
+  async createWithPassword(data: {
+    username: string;
+    email: string | null;
+    passwordHash: string;
+  }): Promise<User> {
+    return usersRepo.createWithPassword(data);
   }
 }
 

@@ -69,21 +69,51 @@ npm run build
 npm start
 ```
 
+## Environment Variables
+
+Copy `env.example` to `.env` and configure:
+
+```bash
+# Authentication (required)
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
+JWT_EXPIRES_IN=7d
+PASSWORD_PEPPER=optional-additional-security-layer
+
+# Database
+DATABASE_URL=postgres://movies_user:movies_pass@localhost:5432/movies_api
+
+# OMDB API  
+OMDB_API_KEY=your-omdb-api-key
+
+# Other settings (optional)
+NODE_ENV=development
+PORT=8080
+CORS_ORIGIN=http://localhost:3000
+```
+
+**Security Notes:**
+- ✅ **Passwords are hashed with Argon2id** (industry standard)
+- ✅ **JWT tokens** with configurable expiration
+- ✅ **Optional password pepper** for additional security
+- ✅ **Minimum 32-character JWT secret** required
+
 ## API Endpoints
 
-### Users
+### Authentication (Public)
 
-* `POST /api/users/ensure` — Create or find a user
+* `POST /api/auth/register` — Register new user
+* `POST /api/auth/login` — Login user  
+* `POST /api/auth/verify` — Verify JWT token (token via header or body)
 
-### Movie search
+### Movie search (Public)
 
 * `POST /api/movies/search` — Search via OMDB (body: query, page)
 * `GET /api/movies/:movieId` — Get movie details
 * `POST /api/movies/by-ids` — Fetch multiple movies by IDs
 
-### User movie management
+### User movie management (Protected - requires Bearer token)
 
-* `GET /api/users/:userId/movies` — Get user’s movie collection
+* `GET /api/users/:userId/movies` — Get user's movie collection
 * `POST /api/users/:userId/movies` — Create a custom movie
 * `PUT /api/users/:userId/movies/:movieId` — Edit a movie (poster is immutable)
 * `PUT /api/users/:userId/movies/:movieId/favorite` — Mark as favorite
@@ -121,19 +151,61 @@ npm run test:coverage
 
 ### Example requests (in order)
 
-1. **Create or get user**
-   **POST** `{{baseUrl}}/users/ensure`
+1. **Register new user**
+   **POST** `{{baseUrl}}/auth/register`
 
    ```json
    {
-     "username": "testuser"
+     "username": "testuser2024",
+     "email": "test@example.com",
+     "password": "MySecurePassword123"
    }
    ```
 
-2. **Search movies via OMDB**
-   **GET** `{{baseUrl}}/movies/search?query=matrix&page=1`
+   Response includes JWT token:
+   ```json
+   {
+     "user": {"id": "...", "username": "...", "email": "..."},
+     "token": "eyJhbGciOiJIUzI1NiIs...",
+     "expiresIn": "7d"
+   }
+   ```
 
-3. **Fetch movies by IDs**
+2. **Login user**
+   **POST** `{{baseUrl}}/auth/login`
+
+   ```json
+   {
+     "login": "testuser2024",
+     "password": "MySecurePassword123"
+   }
+   ```
+
+3. **Verify token (optional)**
+   **POST** `{{baseUrl}}/auth/verify`
+
+   **Option A - Via Authorization header:**
+   Headers: `Authorization: Bearer {token}`
+   Body: empty or `{}`
+
+   **Option B - Via request body:**
+   ```json
+   {
+     "token": "eyJhbGciOiJIUzI1NiIs..."
+   }
+   ```
+
+4. **Search movies via OMDB**
+   **POST** `{{baseUrl}}/movies/search`
+
+   ```json
+   {
+     "query": "matrix",
+     "page": 1
+   }
+   ```
+
+5. **Fetch movies by IDs**
    **POST** `{{baseUrl}}/movies/by-ids`
 
    ```json
@@ -142,11 +214,16 @@ npm run test:coverage
    }
    ```
 
-4. **Get user’s movies**
-   **GET** `{{baseUrl}}/users/{userId}/movies`
+**⚠️ All following endpoints require Authorization header:**
+`Authorization: Bearer {token from login/register response}`
 
-5. **Create custom movie**
+6. **Get user's movies**
+   **GET** `{{baseUrl}}/users/{userId}/movies`
+   Headers: `Authorization: Bearer {token}`
+
+7. **Create custom movie**
    **POST** `{{baseUrl}}/users/{userId}/movies`
+   Headers: `Authorization: Bearer {token}`
 
    ```json
    {
@@ -154,12 +231,14 @@ npm run test:coverage
      "year": 2023,
      "runtimeMinutes": 120,
      "genre": ["Action", "Drama"],
-     "director": ["Custom Director"]
+     "director": ["Custom Director"],
+     "poster": "https://example.com/poster.jpg"
    }
    ```
 
-6. **Update movie**
+8. **Update movie**
    **PUT** `{{baseUrl}}/users/{userId}/movies/{movieId}`
+   Headers: `Authorization: Bearer {token}`
 
    ```json
    {
@@ -173,8 +252,9 @@ npm run test:coverage
 
    **Note:** `poster` field cannot be updated - it's set only during creation.
 
-7. **Mark as favorite**
+9. **Mark as favorite**
    **PUT** `{{baseUrl}}/users/{userId}/movies/{movieId}/favorite`
+   Headers: `Authorization: Bearer {token}`
 
    ```json
    {
@@ -182,15 +262,17 @@ npm run test:coverage
    }
    ```
 
-8. **Get only favorites**
+10. **Get only favorites**
    **GET** `{{baseUrl}}/users/{userId}/movies?favorites=true`
+   Headers: `Authorization: Bearer {token}`
 
-9. **Get movie details**
+11. **Get movie details** (public)
    **GET** `{{baseUrl}}/movies/{movieId}`
 
-10. **Delete movie**
-    **DELETE** `{{baseUrl}}/users/{userId}/movies/{movieId}`
-`
+12. **Delete movie**
+   **DELETE** `{{baseUrl}}/users/{userId}/movies/{movieId}`
+   Headers: `Authorization: Bearer {token}`
+
 ### Testing order
 
 1. Create a user (#1)

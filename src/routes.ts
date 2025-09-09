@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { usersController } from './users/users.controller.js';
 import { moviesController } from './movies/movies.controller.js';
 import { userMoviesController } from './userMovies/userMovies.controller.js';
+import { authController } from './auth/auth.controller.js';
 import { validateBody, validateParams } from './middlewares/validate.js';
 import { searchRateLimit } from './middlewares/rateLimit.js';
+import { authenticateToken, optionalAuth } from './middlewares/auth.js';
 
 const router = Router();
 
@@ -18,9 +19,6 @@ const movieParamsSchema = z.object({
   movieId: z.string().uuid(),
 });
 
-const createUserSchema = z.object({
-  username: z.string().min(3).max(50).trim(),
-});
 
 const createMovieSchema = z.object({
   title: z.string().min(3).trim(),
@@ -37,7 +35,7 @@ const updateMovieSchema = z.object({
   runtimeMinutes: z.number().int().min(1).optional(),
   genre: z.array(z.string().min(3)).min(1).optional(),
   director: z.array(z.string().min(3)).min(1).optional(),
-  poster: z.string().url().optional(),
+  // poster is immutable - cannot be updated
 });
 
 const setFavoriteSchema = z.object({
@@ -53,12 +51,49 @@ const searchMoviesSchema = z.object({
   page: z.number().int().min(1).optional().default(1),
 });
 
-// Users routes
+const registerSchema = z.object({
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be at most 50 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscore and dash')
+    .trim(),
+  email: z.string()
+    .email('Invalid email format')
+    .max(255, 'Email must be at most 255 characters')
+    .trim()
+    .toLowerCase()
+    .optional(),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters')
+    .regex(/(?=.*[a-z])/, 'Password must contain at least one lowercase letter')
+    .regex(/(?=.*[A-Z])/, 'Password must contain at least one uppercase letter')
+    .regex(/(?=.*\d)/, 'Password must contain at least one number'),
+});
+
+const loginSchema = z.object({
+  login: z.string().min(1, 'Login is required').trim(),
+  password: z.string().min(1, 'Password is required'),
+});
+
+// Authentication routes (public)
 router.post(
-  '/users/ensure',
-  validateBody(createUserSchema),
-  usersController.ensureUser.bind(usersController)
+  '/auth/register',
+  validateBody(registerSchema),
+  authController.register.bind(authController)
 );
+
+router.post(
+  '/auth/login',
+  validateBody(loginSchema),
+  authController.login.bind(authController)
+);
+
+router.post(
+  '/auth/verify',
+  authController.verify.bind(authController)
+);
+
 
 // Movies routes
 router.post(
@@ -79,15 +114,17 @@ router.post(
   moviesController.getMoviesByIds.bind(moviesController)
 );
 
-// User movies routes
+// User movies routes (protected - require authentication)
 router.get(
   '/users/:userId/movies',
+  authenticateToken,
   validateParams(uuidSchema),
   userMoviesController.getUserMovies.bind(userMoviesController)
 );
 
 router.post(
   '/users/:userId/movies',
+  authenticateToken,
   validateParams(uuidSchema),
   validateBody(createMovieSchema),
   userMoviesController.createUserMovie.bind(userMoviesController)
@@ -95,6 +132,7 @@ router.post(
 
 router.put(
   '/users/:userId/movies/:movieId',
+  authenticateToken,
   validateParams(movieParamsSchema),
   validateBody(updateMovieSchema),
   userMoviesController.updateUserMovie.bind(userMoviesController)
@@ -102,6 +140,7 @@ router.put(
 
 router.put(
   '/users/:userId/movies/:movieId/favorite',
+  authenticateToken,
   validateParams(movieParamsSchema),
   validateBody(setFavoriteSchema),
   userMoviesController.setFavorite.bind(userMoviesController)
@@ -109,6 +148,7 @@ router.put(
 
 router.delete(
   '/users/:userId/movies/:movieId',
+  authenticateToken,
   validateParams(movieParamsSchema),
   userMoviesController.deleteUserMovie.bind(userMoviesController)
 );
