@@ -192,16 +192,52 @@ export class MoviesService {
    * Delete movie (custom movies globally, OMDB movies as user relationship)
    */
   async deleteMovie(userId: string, movieId: string): Promise<boolean> {
-    const movie = await moviesRepo.findById(movieId);
-    if (!movie) return false;
+    logger.debug('MoviesService: Deleting movie', {
+      userId,
+      movieId
+    });
 
-    // If it's a custom movie created by this user, delete the movie itself
-    if (movie.source === 'custom' && movie.createdByUserId === userId) {
-      return moviesRepo.delete(movieId, userId);
+    try {
+      const movie = await moviesRepo.findById(movieId);
+      
+      logger.debug('MoviesService: Found movie', {
+        userId,
+        movieId,
+        movie: movie ? { id: movie.id, source: movie.source, createdByUserId: movie.createdByUserId } : null
+      });
+      
+      if (!movie) {
+        logger.warn('MoviesService: Movie not found', {
+          userId,
+          movieId
+        });
+        return false;
+      }
+
+      // If it's a custom movie created by this user, delete the movie itself
+      if (movie.source === 'custom' && movie.createdByUserId === userId) {
+        logger.debug('MoviesService: Deleting custom movie globally', {
+          userId,
+          movieId
+        });
+        return moviesRepo.delete(movieId, userId);
+      }
+
+      // Otherwise, just remove the user-movie relationship
+      logger.debug('MoviesService: Deleting user-movie relationship', {
+        userId,
+        movieId
+      });
+      return userMoviesRepo.delete(userId, movieId);
+    } catch (error) {
+      logger.error('MoviesService: Delete movie failed', {
+        userId,
+        movieId,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
     }
-
-    // Otherwise, just remove the user-movie relationship
-    return userMoviesRepo.delete(userId, movieId);
   }
 
   /**

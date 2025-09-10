@@ -477,6 +477,23 @@ export class UserMoviesRepository {
     });
 
     try {
+      // First check if the record exists
+      const checkQuery = 'SELECT user_id, movie_id FROM user_movies WHERE user_id = $1 AND movie_id = $2';
+      const checkParams = [userId, movieId];
+      
+      logger.debug('UserMoviesRepo: Checking if record exists before delete', {
+        checkQuery,
+        checkParams
+      });
+      
+      const checkResult = await db.query(checkQuery, checkParams);
+      
+      logger.debug('UserMoviesRepo: Record check result', {
+        found: checkResult.rows.length > 0,
+        rowCount: checkResult.rowCount,
+        records: checkResult.rows
+      });
+
       const query = 'DELETE FROM user_movies WHERE user_id = $1 AND movie_id = $2';
       const params = [userId, movieId];
 
@@ -493,7 +510,9 @@ export class UserMoviesRepository {
         userId,
         movieId,
         rowCount: result.rowCount,
-        success
+        success,
+        actualQuery: query,
+        actualParams: params
       });
 
       return success;
