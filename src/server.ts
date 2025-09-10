@@ -87,9 +87,43 @@ const initializeDatabase = async () => {
       });
     }
 
+    // Check if core tables exist - if not, try fallback schema
+    if (!tables.users || !tables.movies || !tables.user_movies) {
+      logger.warn('Core tables missing, attempting fallback schema creation', {
+        tablesStatus: tables
+      });
+      
+      try {
+        const fallbackSuccess = await db.createFallbackSchema();
+        if (fallbackSuccess) {
+          logger.info('Fallback schema creation successful');
+          
+          // Re-check tables after fallback
+          const newTables = await db.checkTables();
+          logger.info('Tables after fallback creation', { newTables });
+        } else {
+          logger.error('Fallback schema creation failed');
+        }
+      } catch (fallbackError) {
+        logger.error('Error during fallback schema creation', { error: fallbackError });
+      }
+    }
+
   } catch (error) {
     logger.error('Database initialization check failed', { error });
-    // Don't exit on database errors - let the app start and show errors in health endpoint
+    
+    // As a last resort, try fallback schema even if initialization failed
+    try {
+      logger.warn('Attempting fallback schema as last resort...');
+      const fallbackSuccess = await db.createFallbackSchema();
+      if (fallbackSuccess) {
+        logger.info('Last resort fallback schema successful');
+      } else {
+        logger.error('Last resort fallback schema failed');
+      }
+    } catch (lastResortError) {
+      logger.error('Last resort fallback schema error', { error: lastResortError });
+    }
   }
 };
 

@@ -56,6 +56,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/migrations ./src/db/migrations
+COPY --from=builder /app/src/db/fallback-schema.sql ./src/db/fallback-schema.sql
 
 # Change ownership
 RUN chown -R movies:nodejs /app

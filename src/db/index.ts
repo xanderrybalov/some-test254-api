@@ -176,6 +176,49 @@ export class Database {
       return [];
     }
   }
+
+  /**
+   * Create basic schema as fallback if migrations fail
+   */
+  async createFallbackSchema(): Promise<boolean> {
+    try {
+      logger.info('Creating fallback database schema...');
+      
+      // Read the fallback schema SQL
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const schemaPath = path.join(process.cwd(), 'src', 'db', 'fallback-schema.sql');
+      
+      if (!fs.existsSync(schemaPath)) {
+        logger.error('Fallback schema file not found', { path: schemaPath });
+        return false;
+      }
+      
+      const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
+      
+      // Execute the schema creation
+      await this.query(schemaSQL);
+      
+      logger.info('Fallback schema created successfully');
+      
+      // Verify tables were created
+      const tables = await this.checkTables();
+      const tablesCreated = tables.users && tables.movies && tables.user_movies;
+      
+      if (tablesCreated) {
+        logger.info('Fallback schema verification successful');
+        return true;
+      } else {
+        logger.error('Fallback schema verification failed', { tables });
+        return false;
+      }
+      
+    } catch (error) {
+      logger.error('Failed to create fallback schema', { error });
+      return false;
+    }
+  }
 }
 
 export const db = new Database();

@@ -13,6 +13,7 @@
     "start": "node dist/server.js",
     "migrate:up": "node-pg-migrate up --migrations-dir src/db/migrations --verbose",
     "migrate:up:safe": "node-pg-migrate up --migrations-dir src/db/migrations --verbose --check-order false",
+    "migrate:up:render": "DATABASE_URL=$DATABASE_URL node-pg-migrate up --migrations-dir src/db/migrations --verbose",
     "migrate:docker": "echo '🔍 Migration status:' && node-pg-migrate list --migrations-dir src/db/migrations && echo '📦 Running migrations...' && node-pg-migrate up --migrations-dir src/db/migrations --verbose && echo '✅ Migrations finished!' && node-pg-migrate list --migrations-dir src/db/migrations",
     "migrate:down": "node-pg-migrate down --migrations-dir src/db/migrations",
     "migrate:create": "node-pg-migrate create --migrations-dir src/db/migrations",
