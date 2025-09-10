@@ -1,5 +1,6 @@
 import { Movie, MovieRow } from '../domain/types.js';
 import db from '../db/index.js';
+import logger from '../config/logger.js';
 
 export class MoviesRepository {
   /**
@@ -207,14 +208,45 @@ export class MoviesRepository {
    * Soft delete movie (only custom movies owned by user)
    */
   async delete(movieId: string, userId: string): Promise<boolean> {
-    const result = await db.query(
-      `UPDATE movies 
+    const query = `UPDATE movies 
        SET is_deleted = true, deleted_at = now() 
-       WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`,
-      [movieId, 'custom', userId]
-    );
+       WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`;
+    const params = [movieId, 'custom', userId];
 
-    return (result.rowCount ?? 0) > 0;
+    try {
+      logger.debug('MoviesRepo: Executing soft delete query', {
+        movieId,
+        userId,
+        query,
+        params
+      });
+
+      const result = await db.query(query, params);
+
+      const success = (result.rowCount ?? 0) > 0;
+      
+      logger.debug('MoviesRepo: Soft delete result', {
+        movieId,
+        userId,
+        rowCount: result.rowCount,
+        success
+      });
+
+      return success;
+    } catch (error) {
+      logger.error('MoviesRepo: Soft delete failed', {
+        movieId,
+        userId,
+        query,
+        params,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined,
+        errorName: error instanceof Error ? error.name : undefined
+      });
+      throw error;
+    }
   }
 
   /**

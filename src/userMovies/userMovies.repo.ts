@@ -522,7 +522,9 @@ export class UserMoviesRepository {
         movieId,
         error,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorCode: error instanceof Error && 'code' in error ? error.code : undefined
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined,
+        errorName: error instanceof Error ? error.name : undefined
       });
       throw error;
     }
