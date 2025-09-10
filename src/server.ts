@@ -107,6 +107,23 @@ const initializeDatabase = async () => {
       } catch (fallbackError) {
         logger.error('Error during fallback schema creation', { error: fallbackError });
       }
+    } else {
+      // Tables exist but may need structure fixes
+      logger.info('Core tables exist, checking if structure fixes are needed');
+      try {
+        await db.fixExistingTables();
+        logger.info('Table structure check and fixes completed');
+        
+        // Re-verify users table structure after fixes
+        const usersStructureAfterFix = await db.checkUsersTableStructure();
+        logger.info('Users table structure after fixes', {
+          hasEmail: usersStructureAfterFix.hasEmail,
+          hasPasswordHash: usersStructureAfterFix.hasPasswordHash,
+          readyForAuth: usersStructureAfterFix.hasEmail && usersStructureAfterFix.hasPasswordHash
+        });
+      } catch (structureError) {
+        logger.error('Error during table structure fixes', { error: structureError });
+      }
     }
 
   } catch (error) {

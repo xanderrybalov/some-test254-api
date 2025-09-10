@@ -230,6 +230,22 @@ export class Database {
     try {
       logger.info('Checking and fixing existing table structures...');
 
+      // First, check if user_movies table exists at all
+      const tableExists = await this.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'user_movies'
+        )
+      `);
+
+      if (!tableExists.rows[0]?.exists) {
+        logger.warn('user_movies table does not exist, skipping structure fixes');
+        return;
+      }
+
+      logger.info('user_movies table exists, checking column structure');
+
       // Check user_movies table columns
       const userMoviesColumns = await this.query(`
         SELECT column_name
@@ -240,6 +256,8 @@ export class Database {
 
       const columnNames = userMoviesColumns.rows.map(row => row.column_name);
       
+      logger.info('Current user_movies columns', { columnNames });
+      
       // Add missing columns to user_movies if needed
       if (!columnNames.includes('effective_normalized_title')) {
         logger.info('Adding effective_normalized_title column to user_movies');
@@ -248,8 +266,9 @@ export class Database {
           ADD COLUMN IF NOT EXISTS effective_normalized_title text
         `);
         
+        logger.info('Populating effective_normalized_title with data from movies');
         // Populate the column with data from related movies
-        await this.query(`
+        const updateResult = await this.query(`
           UPDATE user_movies 
           SET effective_normalized_title = COALESCE(
             LOWER(TRIM(REGEXP_REPLACE(
@@ -261,11 +280,19 @@ export class Database {
           WHERE effective_normalized_title IS NULL
         `);
         
+        logger.info('Updated effective_normalized_title for rows', { 
+          updatedRows: updateResult.rowCount 
+        });
+        
         // Make it NOT NULL after populating
         await this.query(`
           ALTER TABLE user_movies 
           ALTER COLUMN effective_normalized_title SET NOT NULL
         `);
+        
+        logger.info('Set effective_normalized_title as NOT NULL');
+      } else {
+        logger.info('effective_normalized_title column already exists');
       }
 
       if (!columnNames.includes('is_deleted')) {
@@ -274,19 +301,25 @@ export class Database {
           ALTER TABLE user_movies 
           ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false
         `);
+      } else {
+        logger.info('is_deleted column already exists');
       }
 
       // Add missing indexes
+      logger.info('Creating missing indexes');
       await this.query(`
         CREATE INDEX IF NOT EXISTS idx_user_movies_effective_title 
         ON user_movies(user_id, effective_normalized_title) 
         WHERE NOT is_deleted
       `);
 
-      logger.info('Table structure fixes completed');
+      logger.info('Table structure fixes completed successfully');
       
     } catch (error) {
-      logger.error('Failed to fix existing tables', { error });
+      logger.error('Failed to fix existing tables', { 
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
       // Don't throw - this is best effort
     }
   }

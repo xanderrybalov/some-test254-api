@@ -324,14 +324,81 @@ export class UserMoviesRepository {
     userId: string,
     effectiveNormalizedTitle: string
   ): Promise<UserMovie | null> {
-    const result = await db.query<UserMovieRow>(
-      'SELECT * FROM user_movies WHERE user_id = $1 AND LOWER(effective_normalized_title) = LOWER($2)',
-      [userId, effectiveNormalizedTitle]
-    );
+    logger.debug('UserMoviesRepo: Finding by effective title', {
+      userId,
+      effectiveNormalizedTitle
+    });
 
-    if (result.rows.length === 0) return null;
+    try {
+      const query = 'SELECT * FROM user_movies WHERE user_id = $1 AND LOWER(effective_normalized_title) = LOWER($2)';
+      const params = [userId, effectiveNormalizedTitle];
 
-    return this.mapRowToUserMovie(result.rows[0]!);
+      logger.debug('UserMoviesRepo: Executing findByUserAndEffectiveTitle query', {
+        query,
+        params
+      });
+
+      const result = await db.query<UserMovieRow>(query, params);
+      
+      logger.debug('UserMoviesRepo: FindByUserAndEffectiveTitle result', {
+        found: result.rows.length > 0,
+        rowCount: result.rowCount
+      });
+
+      if (result.rows.length === 0) return null;
+
+      return this.mapRowToUserMovie(result.rows[0]!);
+    } catch (error) {
+      logger.error('UserMoviesRepo: FindByUserAndEffectiveTitle failed', {
+        userId,
+        effectiveNormalizedTitle,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined
+      });
+
+      // If the error is about missing column, try fallback approach
+      if (error instanceof Error && error.message.includes('effective_normalized_title')) {
+        logger.warn('UserMoviesRepo: effective_normalized_title column missing, using fallback query');
+        
+        try {
+          // Fallback: check by comparing titles directly with movies table
+          const fallbackQuery = `
+            SELECT um.* 
+            FROM user_movies um
+            JOIN movies m ON um.movie_id = m.id
+            WHERE um.user_id = $1 
+            AND (
+              LOWER(TRIM(REGEXP_REPLACE(COALESCE(um.overridden_title, m.title), '[^\\w\\s]', '', 'g'))) = LOWER($2)
+              OR LOWER(TRIM(REGEXP_REPLACE(m.title, '[^\\w\\s]', '', 'g'))) = LOWER($2)
+            )
+          `;
+          
+          logger.debug('UserMoviesRepo: Using fallback query', {
+            query: fallbackQuery,
+            params: [userId, effectiveNormalizedTitle]
+          });
+          
+          const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, [userId, effectiveNormalizedTitle]);
+          
+          logger.info('UserMoviesRepo: Fallback query successful', {
+            found: fallbackResult.rows.length > 0
+          });
+          
+          if (fallbackResult.rows.length === 0) return null;
+          
+          return this.mapRowToUserMovie(fallbackResult.rows[0]!);
+        } catch (fallbackError) {
+          logger.error('UserMoviesRepo: Fallback query also failed', {
+            fallbackError,
+            originalError: error
+          });
+          throw error; // Throw original error
+        }
+      }
+      
+      throw error;
+    }
   }
 }
 
