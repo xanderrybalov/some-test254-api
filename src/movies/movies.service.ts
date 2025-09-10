@@ -214,13 +214,31 @@ export class MoviesService {
         return false;
       }
 
-      // If it's a custom movie created by this user, delete the movie itself
+      // If it's a custom movie created by this user, delete the movie itself and all user relationships
       if (movie.source === 'custom' && movie.createdByUserId === userId) {
         logger.debug('MoviesService: Deleting custom movie globally', {
           userId,
           movieId
         });
-        return moviesRepo.delete(movieId, userId);
+        
+        // Delete the movie from movies table (soft delete)
+        const movieDeleted = await moviesRepo.delete(movieId, userId);
+        
+        // Also remove the user-movie relationship to prevent duplicate checks
+        logger.debug('MoviesService: Removing user-movie relationship for custom movie', {
+          userId,
+          movieId
+        });
+        const userMovieDeleted = await userMoviesRepo.delete(userId, movieId);
+        
+        logger.debug('MoviesService: Custom movie deletion results', {
+          userId,
+          movieId,
+          movieDeleted,
+          userMovieDeleted
+        });
+        
+        return movieDeleted;
       }
 
       // Otherwise, just remove the user-movie relationship
