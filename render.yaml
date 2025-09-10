@@ -17,11 +17,11 @@ services:
           name: movies-db
           property: connectionString
       - key: JWT_SECRET
-        generateValue: true
+        sync: false
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: PASSWORD_PEPPER
-        generateValue: true
+        sync: false
       - key: OMDB_API_KEY
         sync: false
 
