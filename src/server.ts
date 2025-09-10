@@ -46,10 +46,60 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Database initialization check
+const initializeDatabase = async () => {
+  try {
+    logger.info('Checking database connection and structure...');
+    
+    // Check basic connection
+    const dbInfo = await db.checkConnection();
+    logger.info('Database connection established', {
+      database: dbInfo.current_database,
+      user: dbInfo.current_user,
+      version: dbInfo.version?.substring(0, 50) // truncate long version string
+    });
+
+    // Check tables
+    const tables = await db.checkTables();
+    logger.info('Database tables check completed', { tables });
+
+    // Check migrations
+    const migrations = await db.checkMigrations();
+    logger.info('Database migrations check completed', { 
+      migrationsCount: migrations.length,
+      latestMigration: migrations[0]?.name
+    });
+
+    // Check users table structure
+    const usersStructure = await db.checkUsersTableStructure();
+    logger.info('Users table structure check completed', {
+      hasEmail: usersStructure.hasEmail,
+      hasPasswordHash: usersStructure.hasPasswordHash,
+      readyForAuth: usersStructure.hasEmail && usersStructure.hasPasswordHash
+    });
+
+    if (!usersStructure.hasEmail || !usersStructure.hasPasswordHash) {
+      logger.warn('Users table missing authentication fields!', {
+        missingFields: [
+          !usersStructure.hasEmail && 'email',
+          !usersStructure.hasPasswordHash && 'password_hash'
+        ].filter(Boolean)
+      });
+    }
+
+  } catch (error) {
+    logger.error('Database initialization check failed', { error });
+    // Don't exit on database errors - let the app start and show errors in health endpoint
+  }
+};
+
 // Start server
-server.listen(env.PORT, () => {
+server.listen(env.PORT, async () => {
   logger.info(`Server running on port ${env.PORT}`, {
     environment: env.NODE_ENV,
     port: env.PORT,
   });
+  
+  // Initialize database checks after server starts
+  await initializeDatabase();
 });

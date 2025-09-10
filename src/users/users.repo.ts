@@ -1,5 +1,6 @@
 import { User, UserRow } from '../domain/types.js';
 import db from '../db/index.js';
+import logger from '../config/logger.js';
 
 export class UsersRepository {
   /**
@@ -85,12 +86,48 @@ export class UsersRepository {
     email: string | null;
     passwordHash: string;
   }): Promise<User> {
-    const result = await db.query<UserRow>(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
-      [data.username, data.email, data.passwordHash]
-    );
+    logger.debug('UsersRepository: Creating user with password', {
+      username: data.username,
+      email: data.email,
+      hasPasswordHash: !!data.passwordHash
+    });
 
-    return this.mapRowToUser(result.rows[0]!);
+    try {
+      const query = 'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *';
+      const params = [data.username, data.email, data.passwordHash];
+      
+      logger.debug('UsersRepository: Executing insert query', {
+        query,
+        paramCount: params.length,
+        paramTypes: params.map(p => p === null ? 'null' : typeof p)
+      });
+
+      const result = await db.query<UserRow>(query, params);
+      
+      if (!result.rows || result.rows.length === 0) {
+        logger.error('UsersRepository: Insert query returned no rows');
+        throw new Error('User creation failed: no data returned');
+      }
+
+      const userRow = result.rows[0];
+      logger.debug('UsersRepository: User inserted successfully', {
+        userId: userRow.id,
+        username: userRow.username,
+        hasEmail: !!userRow.email,
+        hasPasswordHash: !!userRow.password_hash
+      });
+
+      return this.mapRowToUser(userRow);
+    } catch (error) {
+      logger.error('UsersRepository: Failed to create user', {
+        error,
+        username: data.username,
+        email: data.email,
+        errorMessage: error.message,
+        errorCode: error.code
+      });
+      throw error;
+    }
   }
 
   private mapRowToUser(row: UserRow): User {

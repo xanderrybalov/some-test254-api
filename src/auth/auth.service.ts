@@ -120,47 +120,93 @@ export class AuthService {
    * Register new user
    */
   async register(data: RegisterRequest): Promise<LoginResponse> {
+    logger.info('Starting user registration', {
+      username: data.username,
+      hasEmail: !!data.email,
+      hasPassword: !!data.password
+    });
+
     const validated = registerSchema.parse(data);
+    logger.info('Registration data validated successfully');
 
     // Check if username already exists
+    logger.debug('Checking for existing username');
     const existingUser = await usersService.findByUsername(validated.username);
     if (existingUser) {
+      logger.warn('Registration failed: username already exists', {
+        username: validated.username
+      });
       throw new Error('Username already exists');
     }
+    logger.debug('Username is available');
 
     // Check if email already exists (if provided)
     if (validated.email) {
+      logger.debug('Checking for existing email');
       const existingEmailUser = await usersService.findByEmail(validated.email);
       if (existingEmailUser) {
+        logger.warn('Registration failed: email already exists', {
+          email: validated.email
+        });
         throw new Error('Email already exists');
       }
+      logger.debug('Email is available');
     }
 
     // Hash password
+    logger.debug('Hashing password');
     const passwordHash = await this.hashPassword(validated.password);
+    logger.debug('Password hashed successfully');
 
     // Create user
-    const user = await usersService.createWithPassword({
+    logger.debug('Creating user in database', {
       username: validated.username,
-      email: validated.email || null,
-      passwordHash,
+      email: validated.email,
+      hasPasswordHash: !!passwordHash
     });
+    
+    try {
+      const user = await usersService.createWithPassword({
+        username: validated.username,
+        email: validated.email || null,
+        passwordHash,
+      });
+      
+      logger.info('User created successfully', {
+        userId: user.id,
+        username: user.username
+      });
 
-    // Generate token
-    const token = this.generateToken({
-      userId: user.id,
-      username: user.username,
-    });
-
-    return {
-      user: {
-        id: user.id,
+      // Generate token
+      logger.debug('Generating JWT token');
+      const token = this.generateToken({
+        userId: user.id,
         username: user.username,
-        email: user.email,
-      },
-      token,
-      expiresIn: env.JWT_EXPIRES_IN,
-    };
+      });
+      logger.debug('JWT token generated successfully');
+
+      logger.info('User registration completed successfully', {
+        userId: user.id,
+        username: user.username
+      });
+
+      return {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
+        token,
+        expiresIn: env.JWT_EXPIRES_IN,
+      };
+    } catch (dbError) {
+      logger.error('Database error during user creation', {
+        error: dbError,
+        username: validated.username,
+        email: validated.email
+      });
+      throw dbError;
+    }
   }
 
   /**
