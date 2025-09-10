@@ -202,6 +202,9 @@ export class Database {
       
       logger.info('Fallback schema created successfully');
       
+      // Fix existing tables if they have missing columns
+      await this.fixExistingTables();
+      
       // Verify tables were created
       const tables = await this.checkTables();
       const tablesCreated = tables.users && tables.movies && tables.user_movies;
@@ -217,6 +220,74 @@ export class Database {
     } catch (error) {
       logger.error('Failed to create fallback schema', { error });
       return false;
+    }
+  }
+
+  /**
+   * Fix existing tables by adding missing columns
+   */
+  async fixExistingTables(): Promise<void> {
+    try {
+      logger.info('Checking and fixing existing table structures...');
+
+      // Check user_movies table columns
+      const userMoviesColumns = await this.query(`
+        SELECT column_name
+        FROM information_schema.columns 
+        WHERE table_name = 'user_movies' 
+        AND table_schema = 'public'
+      `);
+
+      const columnNames = userMoviesColumns.rows.map(row => row.column_name);
+      
+      // Add missing columns to user_movies if needed
+      if (!columnNames.includes('effective_normalized_title')) {
+        logger.info('Adding effective_normalized_title column to user_movies');
+        await this.query(`
+          ALTER TABLE user_movies 
+          ADD COLUMN IF NOT EXISTS effective_normalized_title text
+        `);
+        
+        // Populate the column with data from related movies
+        await this.query(`
+          UPDATE user_movies 
+          SET effective_normalized_title = COALESCE(
+            LOWER(TRIM(REGEXP_REPLACE(
+              COALESCE(overridden_title, (SELECT title FROM movies WHERE movies.id = user_movies.movie_id)),
+              '[^\\w\\s]', '', 'g'
+            ))),
+            'unknown'
+          )
+          WHERE effective_normalized_title IS NULL
+        `);
+        
+        // Make it NOT NULL after populating
+        await this.query(`
+          ALTER TABLE user_movies 
+          ALTER COLUMN effective_normalized_title SET NOT NULL
+        `);
+      }
+
+      if (!columnNames.includes('is_deleted')) {
+        logger.info('Adding is_deleted column to user_movies');
+        await this.query(`
+          ALTER TABLE user_movies 
+          ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false
+        `);
+      }
+
+      // Add missing indexes
+      await this.query(`
+        CREATE INDEX IF NOT EXISTS idx_user_movies_effective_title 
+        ON user_movies(user_id, effective_normalized_title) 
+        WHERE NOT is_deleted
+      `);
+
+      logger.info('Table structure fixes completed');
+      
+    } catch (error) {
+      logger.error('Failed to fix existing tables', { error });
+      // Don't throw - this is best effort
     }
   }
 }

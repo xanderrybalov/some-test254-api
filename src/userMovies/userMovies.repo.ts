@@ -1,5 +1,6 @@
 import { UserMovie, UserMovieRow, MovieWithUserData } from '../domain/types.js';
 import db from '../db/index.js';
+import logger from '../config/logger.js';
 
 export class UserMoviesRepository {
   /**
@@ -9,14 +10,36 @@ export class UserMoviesRepository {
     userId: string,
     movieId: string
   ): Promise<UserMovie | null> {
-    const result = await db.query<UserMovieRow>(
-      'SELECT * FROM user_movies WHERE user_id = $1 AND movie_id = $2',
-      [userId, movieId]
-    );
+    logger.debug('UserMoviesRepo: Finding user-movie relationship', {
+      userId,
+      movieId
+    });
 
-    if (result.rows.length === 0) return null;
+    try {
+      const result = await db.query<UserMovieRow>(
+        'SELECT * FROM user_movies WHERE user_id = $1 AND movie_id = $2',
+        [userId, movieId]
+      );
 
-    return this.mapRowToUserMovie(result.rows[0]!);
+      logger.debug('UserMoviesRepo: FindByUserAndMovie result', {
+        userId,
+        movieId,
+        found: result.rows.length > 0,
+        rowCount: result.rowCount
+      });
+
+      if (result.rows.length === 0) return null;
+
+      return this.mapRowToUserMovie(result.rows[0]!);
+    } catch (error) {
+      logger.error('UserMoviesRepo: FindByUserAndMovie failed', {
+        userId,
+        movieId,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   }
 
   /**
@@ -188,19 +211,59 @@ export class UserMoviesRepository {
     movieId: string,
     isFavorite: boolean
   ): Promise<UserMovie | null> {
-    const result = await db.query<UserMovieRow>(
-      `
-      UPDATE user_movies 
-      SET is_favorite = $3, updated_at = now()
-      WHERE user_id = $1 AND movie_id = $2
-      RETURNING *
-    `,
-      [userId, movieId, isFavorite]
-    );
+    logger.debug('UserMoviesRepo: Setting favorite status', {
+      userId,
+      movieId,
+      isFavorite
+    });
 
-    if (result.rows.length === 0) return null;
+    try {
+      const query = `
+        UPDATE user_movies 
+        SET is_favorite = $3, updated_at = now()
+        WHERE user_id = $1 AND movie_id = $2
+        RETURNING *
+      `;
+      const params = [userId, movieId, isFavorite];
+      
+      logger.debug('UserMoviesRepo: Executing setFavorite query', {
+        query,
+        params
+      });
 
-    return this.mapRowToUserMovie(result.rows[0]!);
+      const result = await db.query<UserMovieRow>(query, params);
+      
+      logger.debug('UserMoviesRepo: SetFavorite query result', {
+        rowCount: result.rowCount,
+        hasRows: result.rows.length > 0
+      });
+
+      if (result.rows.length === 0) {
+        logger.warn('UserMoviesRepo: No rows updated in setFavorite - relationship may not exist', {
+          userId,
+          movieId
+        });
+        return null;
+      }
+
+      const userMovie = this.mapRowToUserMovie(result.rows[0]!);
+      logger.debug('UserMoviesRepo: SetFavorite successful', {
+        userId,
+        movieId,
+        isFavorite: userMovie.isFavorite
+      });
+
+      return userMovie;
+    } catch (error) {
+      logger.error('UserMoviesRepo: SetFavorite failed', {
+        userId,
+        movieId,
+        isFavorite,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   }
 
   /**

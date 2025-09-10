@@ -52,10 +52,17 @@ CREATE TABLE IF NOT EXISTS user_movies (
     overridden_runtime_minutes integer,
     overridden_genre text[],
     overridden_director text[],
+    effective_normalized_title text NOT NULL,
+    is_deleted boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, movie_id)
 );
+
+-- Create indexes for user_movies
+CREATE INDEX IF NOT EXISTS idx_user_movies_user_id ON user_movies(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_movies_movie_id ON user_movies(movie_id);
+CREATE INDEX IF NOT EXISTS idx_user_movies_effective_title ON user_movies(user_id, effective_normalized_title) WHERE NOT is_deleted;
 
 -- Grant permissions if needed
 DO $$ 

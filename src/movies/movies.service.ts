@@ -8,6 +8,7 @@ import { normalizeTitle } from '../domain/normalize.js';
 import { moviesRepo } from './movies.repo.js';
 import { userMoviesRepo } from '../userMovies/userMovies.repo.js';
 import { omdbService } from '../omdb/omdb.service.js';
+import logger from '../config/logger.js';
 
 const createMovieSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').trim(),
@@ -211,20 +212,43 @@ export class MoviesService {
     movieId: string,
     isFavorite: boolean
   ): Promise<boolean> {
+    logger.debug('MoviesService: Setting favorite status', {
+      userId,
+      movieId,
+      isFavorite
+    });
+
     // Ensure user-movie relationship exists
     const existing = await userMoviesRepo.findByUserAndMovie(userId, movieId);
+    
+    logger.debug('MoviesService: Existing relationship check', {
+      userId,
+      movieId,
+      hasExisting: !!existing
+    });
 
     if (existing) {
+      logger.debug('MoviesService: Updating existing relationship');
       const result = await userMoviesRepo.setFavorite(
         userId,
         movieId,
         isFavorite
       );
-      return result !== null;
+      const success = result !== null;
+      logger.debug('MoviesService: Update result', { success });
+      return success;
     } else {
+      logger.debug('MoviesService: Creating new relationship - checking movie exists');
       // Create relationship if it doesn't exist
       const movie = await moviesRepo.findById(movieId);
-      if (!movie) return false;
+      if (!movie) {
+        logger.warn('MoviesService: Movie not found for setFavorite', { movieId });
+        return false;
+      }
+
+      logger.debug('MoviesService: Movie found, checking for duplicate titles', {
+        movieTitle: movie.title
+      });
 
       // Check if user already has movie with same title
       const normalizedTitle = normalizeTitle(movie.title);
@@ -233,14 +257,22 @@ export class MoviesService {
         normalizedTitle
       );
       if (existingUserMovie) {
+        logger.warn('MoviesService: Duplicate movie title found', {
+          userId,
+          normalizedTitle,
+          existingMovieId: existingUserMovie.movieId
+        });
         throw new Error('A movie with the same name already exists in your collection.');
       }
 
+      logger.debug('MoviesService: Creating new user-movie relationship');
       await userMoviesRepo.create({
         userId,
         movieId,
         isFavorite,
       });
+      
+      logger.debug('MoviesService: New relationship created successfully');
       return true;
     }
   }
