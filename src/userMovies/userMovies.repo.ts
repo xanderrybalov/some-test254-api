@@ -121,16 +121,109 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    const result = await db.query<UserMovieRow>(
-      `
-      INSERT INTO user_movies (user_id, movie_id, is_favorite)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `,
-      [data.userId, data.movieId, data.isFavorite ?? false]
-    );
+    logger.debug('UserMoviesRepo: Creating user-movie relationship', {
+      userId: data.userId,
+      movieId: data.movieId,
+      isFavorite: data.isFavorite ?? false
+    });
 
-    return this.mapRowToUserMovie(result.rows[0]!);
+    try {
+      // First get the movie title to calculate effective_normalized_title
+      logger.debug('UserMoviesRepo: Getting movie title for effective_normalized_title');
+      const movieResult = await db.query(
+        'SELECT title FROM movies WHERE id = $1',
+        [data.movieId]
+      );
+
+      if (movieResult.rows.length === 0) {
+        throw new Error(`Movie with id ${data.movieId} not found`);
+      }
+
+      const movieTitle = movieResult.rows[0]!.title;
+      const effectiveNormalizedTitle = movieTitle
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      logger.debug('UserMoviesRepo: Calculated effective_normalized_title', {
+        originalTitle: movieTitle,
+        effectiveNormalizedTitle
+      });
+
+      // Try to insert with effective_normalized_title
+      const query = `
+        INSERT INTO user_movies (user_id, movie_id, is_favorite, effective_normalized_title)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `;
+      const params = [data.userId, data.movieId, data.isFavorite ?? false, effectiveNormalizedTitle];
+
+      logger.debug('UserMoviesRepo: Executing create query', {
+        query,
+        params
+      });
+
+      const result = await db.query<UserMovieRow>(query, params);
+
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('Insert returned no rows');
+      }
+
+      logger.debug('UserMoviesRepo: User-movie relationship created successfully', {
+        userId: data.userId,
+        movieId: data.movieId
+      });
+
+      return this.mapRowToUserMovie(result.rows[0]!);
+    } catch (error) {
+      logger.error('UserMoviesRepo: Failed to create user-movie relationship', {
+        userId: data.userId,
+        movieId: data.movieId,
+        isFavorite: data.isFavorite,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined
+      });
+
+      // If the error is about missing effective_normalized_title column, try fallback
+      if (error instanceof Error && error.message.includes('effective_normalized_title')) {
+        logger.warn('UserMoviesRepo: effective_normalized_title column missing, using fallback INSERT');
+        
+        try {
+          const fallbackQuery = `
+            INSERT INTO user_movies (user_id, movie_id, is_favorite)
+            VALUES ($1, $2, $3)
+            RETURNING *
+          `;
+          const fallbackParams = [data.userId, data.movieId, data.isFavorite ?? false];
+          
+          logger.debug('UserMoviesRepo: Using fallback create query', {
+            query: fallbackQuery,
+            params: fallbackParams
+          });
+          
+          const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, fallbackParams);
+          
+          if (!fallbackResult.rows || fallbackResult.rows.length === 0) {
+            throw new Error('Fallback insert returned no rows');
+          }
+          
+          logger.info('UserMoviesRepo: Fallback create successful');
+          
+          return this.mapRowToUserMovie(fallbackResult.rows[0]!);
+        } catch (fallbackError) {
+          logger.error('UserMoviesRepo: Fallback create also failed', {
+            fallbackError,
+            originalError: error
+          });
+          throw error; // Throw original error
+        }
+      }
+      
+      throw error;
+    }
   }
 
   /**
@@ -274,20 +367,104 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    const result = await db.query<UserMovieRow>(
-      `
-      INSERT INTO user_movies (user_id, movie_id, is_favorite)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, movie_id) 
-      DO UPDATE SET 
-        is_favorite = EXCLUDED.is_favorite,
-        updated_at = now()
-      RETURNING *
-    `,
-      [data.userId, data.movieId, data.isFavorite ?? false]
-    );
+    logger.debug('UserMoviesRepo: Upserting user-movie relationship', {
+      userId: data.userId,
+      movieId: data.movieId,
+      isFavorite: data.isFavorite ?? false
+    });
 
-    return this.mapRowToUserMovie(result.rows[0]!);
+    try {
+      // First get the movie title for effective_normalized_title
+      const movieResult = await db.query(
+        'SELECT title FROM movies WHERE id = $1',
+        [data.movieId]
+      );
+
+      if (movieResult.rows.length === 0) {
+        throw new Error(`Movie with id ${data.movieId} not found`);
+      }
+
+      const movieTitle = movieResult.rows[0]!.title;
+      const effectiveNormalizedTitle = movieTitle
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      logger.debug('UserMoviesRepo: Using effective_normalized_title for upsert', {
+        originalTitle: movieTitle,
+        effectiveNormalizedTitle
+      });
+
+      // Try to upsert with effective_normalized_title
+      const query = `
+        INSERT INTO user_movies (user_id, movie_id, is_favorite, effective_normalized_title)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id, movie_id) 
+        DO UPDATE SET 
+          is_favorite = EXCLUDED.is_favorite,
+          effective_normalized_title = EXCLUDED.effective_normalized_title,
+          updated_at = now()
+        RETURNING *
+      `;
+      const params = [data.userId, data.movieId, data.isFavorite ?? false, effectiveNormalizedTitle];
+
+      logger.debug('UserMoviesRepo: Executing upsert query', {
+        query,
+        params
+      });
+
+      const result = await db.query<UserMovieRow>(query, params);
+
+      logger.debug('UserMoviesRepo: Upsert successful');
+
+      return this.mapRowToUserMovie(result.rows[0]!);
+    } catch (error) {
+      logger.error('UserMoviesRepo: Upsert failed', {
+        userId: data.userId,
+        movieId: data.movieId,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      // If the error is about missing effective_normalized_title column, try fallback
+      if (error instanceof Error && error.message.includes('effective_normalized_title')) {
+        logger.warn('UserMoviesRepo: effective_normalized_title column missing, using fallback upsert');
+        
+        try {
+          const fallbackQuery = `
+            INSERT INTO user_movies (user_id, movie_id, is_favorite)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, movie_id) 
+            DO UPDATE SET 
+              is_favorite = EXCLUDED.is_favorite,
+              updated_at = now()
+            RETURNING *
+          `;
+          const fallbackParams = [data.userId, data.movieId, data.isFavorite ?? false];
+          
+          logger.debug('UserMoviesRepo: Using fallback upsert query', {
+            query: fallbackQuery,
+            params: fallbackParams
+          });
+          
+          const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, fallbackParams);
+          
+          logger.info('UserMoviesRepo: Fallback upsert successful');
+          
+          return this.mapRowToUserMovie(fallbackResult.rows[0]!);
+        } catch (fallbackError) {
+          logger.error('UserMoviesRepo: Fallback upsert also failed', {
+            fallbackError,
+            originalError: error
+          });
+          throw error; // Throw original error
+        }
+      }
+      
+      throw error;
+    }
   }
 
   /**
