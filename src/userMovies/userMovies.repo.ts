@@ -471,12 +471,42 @@ export class UserMoviesRepository {
    * Delete user-movie relationship
    */
   async delete(userId: string, movieId: string): Promise<boolean> {
-    const result = await db.query(
-      'DELETE FROM user_movies WHERE user_id = $1 AND movie_id = $2',
-      [userId, movieId]
-    );
+    logger.debug('UserMoviesRepo: Deleting user-movie relationship', {
+      userId,
+      movieId
+    });
 
-    return (result.rowCount ?? 0) > 0;
+    try {
+      const query = 'DELETE FROM user_movies WHERE user_id = $1 AND movie_id = $2';
+      const params = [userId, movieId];
+
+      logger.debug('UserMoviesRepo: Executing delete query', {
+        query,
+        params
+      });
+
+      const result = await db.query(query, params);
+
+      const success = (result.rowCount ?? 0) > 0;
+
+      logger.debug('UserMoviesRepo: Delete result', {
+        userId,
+        movieId,
+        rowCount: result.rowCount,
+        success
+      });
+
+      return success;
+    } catch (error) {
+      logger.error('UserMoviesRepo: Delete failed', {
+        userId,
+        movieId,
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined
+      });
+      throw error;
+    }
   }
 
   private mapRowToUserMovie(row: UserMovieRow): UserMovie {
