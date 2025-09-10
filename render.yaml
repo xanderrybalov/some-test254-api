@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm run migrate:up && npm start
+    startCommand: ./start.sh
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -16,6 +16,8 @@ services:
         fromDatabase:
           name: movies-db
           property: connectionString
+      - key: CORS_ORIGIN
+        value: "*"
       - key: JWT_SECRET
         sync: false
       - key: JWT_EXPIRES_IN
@@ -24,6 +26,12 @@ services:
         sync: false
       - key: OMDB_API_KEY
         sync: false
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: CACHE_TTL_HOURS
+        value: "24"
 
 databases:
   - name: movies-db
