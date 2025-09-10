@@ -107,34 +107,35 @@ app.get('/diagnostics', async (req, res) => {
     return;
   }
   
-  try {
-    const diagnostics = {
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      database: {
-        connection: null,
-        tables: null,
-        migrations: null,
-        usersStructure: null
-      }
-    };
-
     try {
-      diagnostics.database.connection = await db.checkConnection();
-      diagnostics.database.tables = await db.checkTables();
-      diagnostics.database.migrations = await db.checkMigrations();
-      diagnostics.database.usersStructure = await db.checkUsersTableStructure();
-    } catch (dbError) {
-      diagnostics.database.error = dbError.message;
-    }
+      const diagnostics = {
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        database: {
+          connection: null as any,
+          tables: null as any,
+          migrations: null as any,
+          usersStructure: null as any,
+          error: undefined as string | undefined
+        }
+      };
 
-    res.json(diagnostics);
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'Diagnostics failed',
-      message: error.message
-    });
-  }
+      try {
+        diagnostics.database.connection = await db.checkConnection();
+        diagnostics.database.tables = await db.checkTables();
+        diagnostics.database.migrations = await db.checkMigrations();
+        diagnostics.database.usersStructure = await db.checkUsersTableStructure();
+      } catch (dbError) {
+        diagnostics.database.error = dbError instanceof Error ? dbError.message : 'Unknown database error';
+      }
+
+      res.json(diagnostics);
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Diagnostics failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
 });
 
 // API routes

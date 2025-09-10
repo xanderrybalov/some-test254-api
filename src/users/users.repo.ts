@@ -110,6 +110,11 @@ export class UsersRepository {
       }
 
       const userRow = result.rows[0];
+      if (!userRow) {
+        logger.error('UsersRepository: First row is undefined');
+        throw new Error('User creation failed: invalid row data');
+      }
+
       logger.debug('UsersRepository: User inserted successfully', {
         userId: userRow.id,
         username: userRow.username,
@@ -123,8 +128,8 @@ export class UsersRepository {
         error,
         username: data.username,
         email: data.email,
-        errorMessage: error.message,
-        errorCode: error.code
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && 'code' in error ? error.code : undefined
       });
       throw error;
     }
