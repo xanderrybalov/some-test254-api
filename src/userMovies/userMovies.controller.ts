@@ -183,57 +183,27 @@ export class UserMoviesController {
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.debug('UserMoviesController: DELETE request received', {
-      userId: req.params.userId,
-      movieId: req.params.movieId
-    });
-
     try {
       const { userId, movieId } = req.params;
 
       if (!userId || !movieId) {
-        logger.warn('UserMoviesController: Missing userId or movieId', {
-          userId,
-          movieId
-        });
         res.status(400).json({ error: 'User ID and Movie ID are required' });
         return;
       }
 
-      logger.debug('UserMoviesController: Calling moviesService.deleteMovie', {
-        userId,
-        movieId
-      });
-
       const success = await moviesService.deleteMovie(userId, movieId);
 
-      logger.debug('UserMoviesController: MoviesService.deleteMovie result', {
-        userId,
-        movieId,
-        success
-      });
-
       if (!success) {
-        logger.warn('UserMoviesController: Movie not found or delete failed', {
-          userId,
-          movieId
-        });
         res.status(404).json({ error: 'Movie not found' });
         return;
       }
-
-      logger.debug('UserMoviesController: Delete successful', {
-        userId,
-        movieId
-      });
 
       res.json({ ok: true });
     } catch (error) {
       logger.error('UserMoviesController: Failed to delete user movie', {
         userId: req.params.userId,
         movieId: req.params.movieId,
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       next(error);
     }

@@ -192,120 +192,31 @@ export class MoviesService {
    * Delete movie (custom movies globally, OMDB movies as user relationship)
    */
   async deleteMovie(userId: string, movieId: string): Promise<boolean> {
-    logger.debug('MoviesService: Deleting movie', {
-      userId,
-      movieId
-    });
-
     try {
-      logger.debug('MoviesService: About to find movie by ID', {
-        userId,
-        movieId
-      });
-
       const movie = await moviesRepo.findById(movieId);
       
-      logger.debug('MoviesService: Found movie', {
-        userId,
-        movieId,
-        movie: movie ? { id: movie.id, source: movie.source, createdByUserId: movie.createdByUserId } : null
-      });
-      
       if (!movie) {
-        logger.warn('MoviesService: Movie not found', {
-          userId,
-          movieId
-        });
         return false;
       }
 
       // If it's a custom movie created by this user, delete the movie itself and all user relationships
       if (movie.source === 'custom' && movie.createdByUserId === userId) {
-        logger.debug('MoviesService: Deleting custom movie globally', {
-          userId,
-          movieId
-        });
+        // Delete the movie from movies table (soft delete)
+        const movieDeleted = await moviesRepo.delete(movieId, userId);
         
-        try {
-          // Delete the movie from movies table (soft delete)
-          logger.debug('MoviesService: About to delete movie from movies table', {
-            userId,
-            movieId
-          });
-          const movieDeleted = await moviesRepo.delete(movieId, userId);
-          logger.debug('MoviesService: Movie deletion from movies table completed', {
-            userId,
-            movieId,
-            movieDeleted
-          });
-          
-          // Also remove the user-movie relationship to prevent duplicate checks
-          logger.debug('MoviesService: About to remove user-movie relationship for custom movie', {
-            userId,
-            movieId
-          });
-          const userMovieDeleted = await userMoviesRepo.delete(userId, movieId);
-          logger.debug('MoviesService: User-movie relationship deletion completed', {
-            userId,
-            movieId,
-            userMovieDeleted
-          });
-          
-          logger.debug('MoviesService: Custom movie deletion results', {
-            userId,
-            movieId,
-            movieDeleted,
-            userMovieDeleted
-          });
-          
-          return movieDeleted;
-        } catch (deleteError) {
-          logger.error('MoviesService: Error during custom movie deletion', {
-            userId,
-            movieId,
-            deleteError,
-            deleteErrorMessage: deleteError instanceof Error ? deleteError.message : 'Unknown delete error',
-            deleteErrorStack: deleteError instanceof Error ? deleteError.stack : undefined,
-            deleteErrorCode: deleteError instanceof Error && 'code' in deleteError ? deleteError.code : undefined
-          });
-          throw deleteError;
-        }
+        // Also remove the user-movie relationship to prevent duplicate checks
+        await userMoviesRepo.delete(userId, movieId);
+        
+        return movieDeleted;
       }
 
       // Otherwise, just remove the user-movie relationship
-      logger.debug('MoviesService: Deleting user-movie relationship only', {
-        userId,
-        movieId
-      });
-      
-      try {
-        const result = await userMoviesRepo.delete(userId, movieId);
-        logger.debug('MoviesService: User-movie relationship deletion completed', {
-          userId,
-          movieId,
-          result
-        });
-        return result;
-      } catch (deleteError) {
-        logger.error('MoviesService: Error during user-movie relationship deletion', {
-          userId,
-          movieId,
-          deleteError,
-          deleteErrorMessage: deleteError instanceof Error ? deleteError.message : 'Unknown delete error',
-          deleteErrorStack: deleteError instanceof Error ? deleteError.stack : undefined,
-          deleteErrorCode: deleteError instanceof Error && 'code' in deleteError ? deleteError.code : undefined
-        });
-        throw deleteError;
-      }
+      return userMoviesRepo.delete(userId, movieId);
     } catch (error) {
       logger.error('MoviesService: Delete movie failed', {
         userId,
         movieId,
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorCode: error instanceof Error && 'code' in error ? error.code : undefined,
-        errorName: error instanceof Error ? error.name : undefined
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }

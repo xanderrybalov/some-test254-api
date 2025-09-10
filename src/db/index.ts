@@ -35,11 +35,8 @@ export class Database {
     text: string,
     params?: unknown[]
   ): Promise<QueryResult<T>> {
-    const start = Date.now();
     try {
       const res = await this.pool.query<T>(text, params);
-      const duration = Date.now() - start;
-      logger.debug('Executed query', { text, duration, rows: res.rowCount });
       return res;
     } catch (error) {
       logger.error('Database query error', { text, error });

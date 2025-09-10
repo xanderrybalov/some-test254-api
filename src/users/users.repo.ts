@@ -86,21 +86,11 @@ export class UsersRepository {
     email: string | null;
     passwordHash: string;
   }): Promise<User> {
-    logger.debug('UsersRepository: Creating user with password', {
-      username: data.username,
-      email: data.email,
-      hasPasswordHash: !!data.passwordHash
-    });
 
     try {
       const query = 'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *';
       const params = [data.username, data.email, data.passwordHash];
       
-      logger.debug('UsersRepository: Executing insert query', {
-        query,
-        paramCount: params.length,
-        paramTypes: params.map(p => p === null ? 'null' : typeof p)
-      });
 
       const result = await db.query<UserRow>(query, params);
       
@@ -115,12 +105,6 @@ export class UsersRepository {
         throw new Error('User creation failed: invalid row data');
       }
 
-      logger.debug('UsersRepository: User inserted successfully', {
-        userId: userRow.id,
-        username: userRow.username,
-        hasEmail: !!userRow.email,
-        hasPasswordHash: !!userRow.password_hash
-      });
 
       return this.mapRowToUser(userRow);
     } catch (error) {

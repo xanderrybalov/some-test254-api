@@ -30,17 +30,12 @@ export class OMDBService {
     items: Movie[];
     total: number;
   }> {
-    logger.debug('Searching movies in OMDB', { query, page });
 
     const searchResponse = await this.fetchWithRetry<OMDBSearchResponse>(
       `${this.baseUrl}?apikey=${env.OMDB_API_KEY}&s=${encodeURIComponent(query)}&page=${page}`
     );
 
     if (searchResponse.Response === 'False') {
-      logger.debug('OMDB search returned no results', {
-        query,
-        error: searchResponse.Error,
-      });
       return { items: [], total: 0 };
     }
 
@@ -71,7 +66,6 @@ export class OMDBService {
       // Check if movie exists in cache and is fresh
       const cachedMovie = await this.getCachedMovie(imdbId);
       if (cachedMovie && this.isCacheFresh(cachedMovie.updatedAt) && cachedMovie.poster !== null) {
-        logger.debug('Using cached movie', { imdbId });
         return cachedMovie;
       }
 

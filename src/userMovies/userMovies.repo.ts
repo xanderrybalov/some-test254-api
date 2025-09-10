@@ -10,23 +10,11 @@ export class UserMoviesRepository {
     userId: string,
     movieId: string
   ): Promise<UserMovie | null> {
-    logger.debug('UserMoviesRepo: Finding user-movie relationship', {
-      userId,
-      movieId
-    });
-
     try {
       const result = await db.query<UserMovieRow>(
         'SELECT * FROM user_movies WHERE user_id = $1 AND movie_id = $2',
         [userId, movieId]
       );
-
-      logger.debug('UserMoviesRepo: FindByUserAndMovie result', {
-        userId,
-        movieId,
-        found: result.rows.length > 0,
-        rowCount: result.rowCount
-      });
 
       if (result.rows.length === 0) return null;
 
@@ -35,8 +23,7 @@ export class UserMoviesRepository {
       logger.error('UserMoviesRepo: FindByUserAndMovie failed', {
         userId,
         movieId,
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }
@@ -121,15 +108,8 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    logger.debug('UserMoviesRepo: Creating user-movie relationship', {
-      userId: data.userId,
-      movieId: data.movieId,
-      isFavorite: data.isFavorite ?? false
-    });
-
     try {
       // First get the movie title to calculate effective_normalized_title
-      logger.debug('UserMoviesRepo: Getting movie title for effective_normalized_title');
       const movieResult = await db.query(
         'SELECT title FROM movies WHERE id = $1',
         [data.movieId]
@@ -147,11 +127,6 @@ export class UserMoviesRepository {
         .replace(/\s+/g, ' ')
         .trim();
 
-      logger.debug('UserMoviesRepo: Calculated effective_normalized_title', {
-        originalTitle: movieTitle,
-        effectiveNormalizedTitle
-      });
-
       // Try to insert with effective_normalized_title
       const query = `
         INSERT INTO user_movies (user_id, movie_id, is_favorite, effective_normalized_title)
@@ -160,21 +135,11 @@ export class UserMoviesRepository {
       `;
       const params = [data.userId, data.movieId, data.isFavorite ?? false, effectiveNormalizedTitle];
 
-      logger.debug('UserMoviesRepo: Executing create query', {
-        query,
-        params
-      });
-
       const result = await db.query<UserMovieRow>(query, params);
 
       if (!result.rows || result.rows.length === 0) {
         throw new Error('Insert returned no rows');
       }
-
-      logger.debug('UserMoviesRepo: User-movie relationship created successfully', {
-        userId: data.userId,
-        movieId: data.movieId
-      });
 
       return this.mapRowToUserMovie(result.rows[0]!);
     } catch (error) {
@@ -199,10 +164,6 @@ export class UserMoviesRepository {
           `;
           const fallbackParams = [data.userId, data.movieId, data.isFavorite ?? false];
           
-          logger.debug('UserMoviesRepo: Using fallback create query', {
-            query: fallbackQuery,
-            params: fallbackParams
-          });
           
           const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, fallbackParams);
           
@@ -304,12 +265,6 @@ export class UserMoviesRepository {
     movieId: string,
     isFavorite: boolean
   ): Promise<UserMovie | null> {
-    logger.debug('UserMoviesRepo: Setting favorite status', {
-      userId,
-      movieId,
-      isFavorite
-    });
-
     try {
       const query = `
         UPDATE user_movies 
@@ -318,35 +273,14 @@ export class UserMoviesRepository {
         RETURNING *
       `;
       const params = [userId, movieId, isFavorite];
-      
-      logger.debug('UserMoviesRepo: Executing setFavorite query', {
-        query,
-        params
-      });
 
       const result = await db.query<UserMovieRow>(query, params);
-      
-      logger.debug('UserMoviesRepo: SetFavorite query result', {
-        rowCount: result.rowCount,
-        hasRows: result.rows.length > 0
-      });
 
       if (result.rows.length === 0) {
-        logger.warn('UserMoviesRepo: No rows updated in setFavorite - relationship may not exist', {
-          userId,
-          movieId
-        });
         return null;
       }
 
-      const userMovie = this.mapRowToUserMovie(result.rows[0]!);
-      logger.debug('UserMoviesRepo: SetFavorite successful', {
-        userId,
-        movieId,
-        isFavorite: userMovie.isFavorite
-      });
-
-      return userMovie;
+      return this.mapRowToUserMovie(result.rows[0]!);
     } catch (error) {
       logger.error('UserMoviesRepo: SetFavorite failed', {
         userId,
@@ -367,12 +301,6 @@ export class UserMoviesRepository {
     movieId: string;
     isFavorite?: boolean;
   }): Promise<UserMovie> {
-    logger.debug('UserMoviesRepo: Upserting user-movie relationship', {
-      userId: data.userId,
-      movieId: data.movieId,
-      isFavorite: data.isFavorite ?? false
-    });
-
     try {
       // First get the movie title for effective_normalized_title
       const movieResult = await db.query(
@@ -392,11 +320,6 @@ export class UserMoviesRepository {
         .replace(/\s+/g, ' ')
         .trim();
 
-      logger.debug('UserMoviesRepo: Using effective_normalized_title for upsert', {
-        originalTitle: movieTitle,
-        effectiveNormalizedTitle
-      });
-
       // Try to upsert with effective_normalized_title
       const query = `
         INSERT INTO user_movies (user_id, movie_id, is_favorite, effective_normalized_title)
@@ -410,14 +333,7 @@ export class UserMoviesRepository {
       `;
       const params = [data.userId, data.movieId, data.isFavorite ?? false, effectiveNormalizedTitle];
 
-      logger.debug('UserMoviesRepo: Executing upsert query', {
-        query,
-        params
-      });
-
       const result = await db.query<UserMovieRow>(query, params);
-
-      logger.debug('UserMoviesRepo: Upsert successful');
 
       return this.mapRowToUserMovie(result.rows[0]!);
     } catch (error) {
@@ -444,10 +360,6 @@ export class UserMoviesRepository {
           `;
           const fallbackParams = [data.userId, data.movieId, data.isFavorite ?? false];
           
-          logger.debug('UserMoviesRepo: Using fallback upsert query', {
-            query: fallbackQuery,
-            params: fallbackParams
-          });
           
           const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, fallbackParams);
           
@@ -471,60 +383,17 @@ export class UserMoviesRepository {
    * Delete user-movie relationship
    */
   async delete(userId: string, movieId: string): Promise<boolean> {
-    logger.debug('UserMoviesRepo: Deleting user-movie relationship', {
-      userId,
-      movieId
-    });
-
     try {
-      // First check if the record exists
-      const checkQuery = 'SELECT user_id, movie_id FROM user_movies WHERE user_id = $1 AND movie_id = $2';
-      const checkParams = [userId, movieId];
-      
-      logger.debug('UserMoviesRepo: Checking if record exists before delete', {
-        checkQuery,
-        checkParams
-      });
-      
-      const checkResult = await db.query(checkQuery, checkParams);
-      
-      logger.debug('UserMoviesRepo: Record check result', {
-        found: checkResult.rows.length > 0,
-        rowCount: checkResult.rowCount,
-        records: checkResult.rows
-      });
-
       const query = 'DELETE FROM user_movies WHERE user_id = $1 AND movie_id = $2';
       const params = [userId, movieId];
 
-      logger.debug('UserMoviesRepo: Executing delete query', {
-        query,
-        params
-      });
-
       const result = await db.query(query, params);
-
-      const success = (result.rowCount ?? 0) > 0;
-
-      logger.debug('UserMoviesRepo: Delete result', {
-        userId,
-        movieId,
-        rowCount: result.rowCount,
-        success,
-        actualQuery: query,
-        actualParams: params
-      });
-
-      return success;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       logger.error('UserMoviesRepo: Delete failed', {
         userId,
         movieId,
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorCode: error instanceof Error && 'code' in error ? error.code : undefined,
-        errorName: error instanceof Error ? error.name : undefined
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }
@@ -552,26 +421,11 @@ export class UserMoviesRepository {
     userId: string,
     effectiveNormalizedTitle: string
   ): Promise<UserMovie | null> {
-    logger.debug('UserMoviesRepo: Finding by effective title', {
-      userId,
-      effectiveNormalizedTitle
-    });
-
     try {
       const query = 'SELECT * FROM user_movies WHERE user_id = $1 AND LOWER(effective_normalized_title) = LOWER($2)';
       const params = [userId, effectiveNormalizedTitle];
 
-      logger.debug('UserMoviesRepo: Executing findByUserAndEffectiveTitle query', {
-        query,
-        params
-      });
-
       const result = await db.query<UserMovieRow>(query, params);
-      
-      logger.debug('UserMoviesRepo: FindByUserAndEffectiveTitle result', {
-        found: result.rows.length > 0,
-        rowCount: result.rowCount
-      });
 
       if (result.rows.length === 0) return null;
 
@@ -602,10 +456,6 @@ export class UserMoviesRepository {
             )
           `;
           
-          logger.debug('UserMoviesRepo: Using fallback query', {
-            query: fallbackQuery,
-            params: [userId, effectiveNormalizedTitle]
-          });
           
           const fallbackResult = await db.query<UserMovieRow>(fallbackQuery, [userId, effectiveNormalizedTitle]);
           

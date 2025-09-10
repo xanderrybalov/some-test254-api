@@ -130,40 +130,23 @@ export class AuthService {
     logger.info('Registration data validated successfully');
 
     // Check if username already exists
-    logger.debug('Checking for existing username');
     const existingUser = await usersService.findByUsername(validated.username);
     if (existingUser) {
-      logger.warn('Registration failed: username already exists', {
-        username: validated.username
-      });
       throw new Error('Username already exists');
     }
-    logger.debug('Username is available');
 
     // Check if email already exists (if provided)
     if (validated.email) {
-      logger.debug('Checking for existing email');
       const existingEmailUser = await usersService.findByEmail(validated.email);
       if (existingEmailUser) {
-        logger.warn('Registration failed: email already exists', {
-          email: validated.email
-        });
         throw new Error('Email already exists');
       }
-      logger.debug('Email is available');
     }
 
     // Hash password
-    logger.debug('Hashing password');
     const passwordHash = await this.hashPassword(validated.password);
-    logger.debug('Password hashed successfully');
 
     // Create user
-    logger.debug('Creating user in database', {
-      username: validated.username,
-      email: validated.email,
-      hasPasswordHash: !!passwordHash
-    });
     
     try {
       const user = await usersService.createWithPassword({
@@ -178,12 +161,10 @@ export class AuthService {
       });
 
       // Generate token
-      logger.debug('Generating JWT token');
       const token = this.generateToken({
         userId: user.id,
         username: user.username,
       });
-      logger.debug('JWT token generated successfully');
 
       logger.info('User registration completed successfully', {
         userId: user.id,

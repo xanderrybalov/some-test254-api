@@ -215,70 +215,22 @@ export class MoviesRepository {
     const params = [movieId, 'custom', userId];
 
     try {
-      logger.debug('MoviesRepo: Executing soft delete query with deleted_at', {
-        movieId,
-        userId,
-        query: queryWithDeletedAt,
-        params
-      });
-
       const result = await db.query(queryWithDeletedAt, params);
-
-      const success = (result.rowCount ?? 0) > 0;
-      
-      logger.debug('MoviesRepo: Soft delete result', {
-        movieId,
-        userId,
-        rowCount: result.rowCount,
-        success
-      });
-
-      return success;
-    } catch (error) {
-      logger.warn('MoviesRepo: Soft delete with deleted_at failed, trying fallback', {
-        movieId,
-        userId,
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
-      });
-
+      return (result.rowCount ?? 0) > 0;
+    } catch {
       // Fallback: try without deleted_at column
       try {
         const fallbackQuery = `UPDATE movies 
            SET is_deleted = true 
            WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`;
         
-        logger.debug('MoviesRepo: Executing fallback soft delete query', {
-          movieId,
-          userId,
-          query: fallbackQuery,
-          params
-        });
-
         const fallbackResult = await db.query(fallbackQuery, params);
-
-        const fallbackSuccess = (fallbackResult.rowCount ?? 0) > 0;
-        
-        logger.debug('MoviesRepo: Fallback soft delete result', {
-          movieId,
-          userId,
-          rowCount: fallbackResult.rowCount,
-          success: fallbackSuccess
-        });
-
-        return fallbackSuccess;
+        return (fallbackResult.rowCount ?? 0) > 0;
       } catch (fallbackError) {
-        logger.error('MoviesRepo: Both soft delete attempts failed', {
+        logger.error('MoviesRepo: Soft delete failed', {
           movieId,
           userId,
-          originalError: error,
-          fallbackError,
-          originalErrorMessage: error instanceof Error ? error.message : 'Unknown error',
-          fallbackErrorMessage: fallbackError instanceof Error ? fallbackError.message : 'Unknown fallback error',
-          originalErrorStack: error instanceof Error ? error.stack : undefined,
-          fallbackErrorStack: fallbackError instanceof Error ? fallbackError.stack : undefined,
-          originalErrorCode: error instanceof Error && 'code' in error ? error.code : undefined,
-          fallbackErrorCode: fallbackError instanceof Error && 'code' in fallbackError ? fallbackError.code : undefined
+          error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error'
         });
         throw fallbackError;
       }

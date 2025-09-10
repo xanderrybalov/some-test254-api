@@ -43,7 +43,7 @@ try {
   env = envSchema.parse(process.env);
 } catch (error) {
   if (error instanceof z.ZodError) {
-    console.error('❌ Invalid environment variables:');
+    console.error('Invalid environment variables:');
     error.errors.forEach(err => {
       console.error(`${err.path.join('.')}: ${err.message}`);
     });
