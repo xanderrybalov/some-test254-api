@@ -208,20 +208,21 @@ export class MoviesRepository {
    * Soft delete movie (only custom movies owned by user)
    */
   async delete(movieId: string, userId: string): Promise<boolean> {
-    const query = `UPDATE movies 
+    // Try with deleted_at column first
+    const queryWithDeletedAt = `UPDATE movies 
        SET is_deleted = true, deleted_at = now() 
        WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`;
     const params = [movieId, 'custom', userId];
 
     try {
-      logger.debug('MoviesRepo: Executing soft delete query', {
+      logger.debug('MoviesRepo: Executing soft delete query with deleted_at', {
         movieId,
         userId,
-        query,
+        query: queryWithDeletedAt,
         params
       });
 
-      const result = await db.query(query, params);
+      const result = await db.query(queryWithDeletedAt, params);
 
       const success = (result.rowCount ?? 0) > 0;
       
@@ -234,18 +235,53 @@ export class MoviesRepository {
 
       return success;
     } catch (error) {
-      logger.error('MoviesRepo: Soft delete failed', {
+      logger.warn('MoviesRepo: Soft delete with deleted_at failed, trying fallback', {
         movieId,
         userId,
-        query,
-        params,
         error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorCode: error instanceof Error && 'code' in error ? error.code : undefined,
-        errorName: error instanceof Error ? error.name : undefined
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
       });
-      throw error;
+
+      // Fallback: try without deleted_at column
+      try {
+        const fallbackQuery = `UPDATE movies 
+           SET is_deleted = true 
+           WHERE id = $1 AND source = $2 AND created_by_user_id = $3 AND is_deleted = false`;
+        
+        logger.debug('MoviesRepo: Executing fallback soft delete query', {
+          movieId,
+          userId,
+          query: fallbackQuery,
+          params
+        });
+
+        const fallbackResult = await db.query(fallbackQuery, params);
+
+        const fallbackSuccess = (fallbackResult.rowCount ?? 0) > 0;
+        
+        logger.debug('MoviesRepo: Fallback soft delete result', {
+          movieId,
+          userId,
+          rowCount: fallbackResult.rowCount,
+          success: fallbackSuccess
+        });
+
+        return fallbackSuccess;
+      } catch (fallbackError) {
+        logger.error('MoviesRepo: Both soft delete attempts failed', {
+          movieId,
+          userId,
+          originalError: error,
+          fallbackError,
+          originalErrorMessage: error instanceof Error ? error.message : 'Unknown error',
+          fallbackErrorMessage: fallbackError instanceof Error ? fallbackError.message : 'Unknown fallback error',
+          originalErrorStack: error instanceof Error ? error.stack : undefined,
+          fallbackErrorStack: fallbackError instanceof Error ? fallbackError.stack : undefined,
+          originalErrorCode: error instanceof Error && 'code' in error ? error.code : undefined,
+          fallbackErrorCode: fallbackError instanceof Error && 'code' in fallbackError ? fallbackError.code : undefined
+        });
+        throw fallbackError;
+      }
     }
   }
 

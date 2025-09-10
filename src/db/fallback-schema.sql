@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS movies (
     source text NOT NULL,
     created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     is_deleted boolean NOT NULL DEFAULT false,
+    deleted_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT chk_source CHECK (source IN ('omdb', 'custom'))
