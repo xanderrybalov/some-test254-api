@@ -1,0 +1,13 @@
+# Docker Compose for Development
+# Use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  api:
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - DEBUG=*
+      - LOG_LEVEL=debug

@@ -5,7 +5,7 @@ services:
     image: postgres:16-alpine
     container_name: movies-api-postgres
     environment:
-      POSTGRES_DB: movies_api
+      POSTGRES_DB: movies
       POSTGRES_USER: movies_user
       POSTGRES_PASSWORD: movies_pass
     ports:
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U movies_user -d movies_api"]
+      test: ["CMD-SHELL", "pg_isready -U movies_user -d movies"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,6 +31,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      target: development
+    container_name: movies-api
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: development
+      PORT: 8080
+      DATABASE_URL: postgres://movies_user:movies_pass@postgres:5432/movies
+      CORS_ORIGIN: http://localhost:3000
+      JWT_SECRET: your-super-secret-jwt-key-at-least-32-chars-long-for-development
+      JWT_EXPIRES_IN: 7d
+      OMDB_API_KEY: ${OMDB_API_KEY:-your-omdb-api-key}
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX: 120
+      CACHE_TTL_HOURS: 24
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '🚀 Starting Movies API...'
+        echo '⏳ Waiting for database to be fully ready...'
+        sleep 5
+        npm run migrate:docker
+        echo '🌟 Starting server...'
+        npm run dev
+      "
+    volumes:
+      - .:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

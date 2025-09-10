@@ -15,6 +15,28 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
+# Development stage
+FROM node:22-alpine AS development
+
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm ci && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 8080
+
+# Start in development mode
+CMD ["npm", "run", "dev"]
+
 # Production stage
 FROM node:22-alpine AS production
 
